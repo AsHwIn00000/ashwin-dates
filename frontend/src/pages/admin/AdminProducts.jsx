@@ -4,7 +4,6 @@ import Spinner from '../../components/Spinner';
 import toast from 'react-hot-toast';
 import { FiEdit2, FiTrash2, FiPlus, FiX } from 'react-icons/fi';
 
-const BRAND = '#3d6b35';
 const CATEGORIES = ['dates', 'almonds', 'cashews', 'pistachios', 'combo', 'spices', 'seeds', 'essence', 'others'];
 const WEIGHTS = [
   { label: '100g', ratio: 0.1 },
@@ -14,12 +13,13 @@ const WEIGHTS = [
 ];
 const EMPTY = { name: '', description: '', pricePerKg: '', category: 'dates', inStock: true, isFeatured: false };
 
-// Auto-calculate prices from pricePerKg
 const calcPrices = (pkgVal) => {
   const pkg = Number(pkgVal);
   if (!pkg || pkg <= 0) return null;
   return WEIGHTS.reduce((acc, w) => ({ ...acc, [w.label]: Math.round(pkg * w.ratio) }), {});
 };
+
+const inputCls = "w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:bg-gray-800 dark:text-white";
 
 export default function AdminProducts() {
   const [products, setProducts] = useState([]);
@@ -61,7 +61,6 @@ export default function AdminProducts() {
     if (!form.name.trim()) { toast.error('Product name is required'); return; }
     if (!form.pricePerKg || Number(form.pricePerKg) <= 0) { toast.error('Enter a valid price per kg'); return; }
     if (!form.description.trim()) { toast.error('Description is required'); return; }
-
     setSaving(true);
     try {
       const fd = new FormData();
@@ -72,13 +71,12 @@ export default function AdminProducts() {
       fd.append('inStock', form.inStock);
       fd.append('isFeatured', form.isFeatured);
       files.forEach(f => fd.append('images', f));
-
       if (editing) {
         await api.put(`/products/${editing}`, fd);
-        toast.success('Product updated — visible to customers now!');
+        toast.success('Product updated!');
       } else {
         await api.post('/products', fd);
-        toast.success('Product added — customers can see it now!');
+        toast.success('Product added!');
       }
       setShowForm(false);
       fetchProducts();
@@ -93,12 +91,16 @@ export default function AdminProducts() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
+      {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-extrabold text-gray-800 dark:text-white">Products</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{products.length} products — changes reflect instantly on customer site</p>
+          <p className="text-sm text-gray-500 mt-0.5">{products.length} products</p>
         </div>
-        <button onClick={openAdd} className="text-white px-4 py-2 rounded-xl flex items-center gap-2 font-semibold hover:opacity-80 shadow" className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226]">
+        <button
+          onClick={openAdd}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 font-semibold text-sm hover:bg-gray-50 dark:hover:bg-gray-800 transition shadow-sm"
+        >
           <FiPlus size={16} /> Add Product
         </button>
       </div>
@@ -107,104 +109,91 @@ export default function AdminProducts() {
       {showForm && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
           <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto shadow-2xl">
-            <div className="flex items-center justify-between px-6 py-4 rounded-t-2xl" className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226]">
-              <h2 className="text-lg font-bold text-white">{editing ? 'Edit Product' : 'Add New Product'}</h2>
-              <button onClick={() => setShowForm(false)} className="text-white hover:opacity-70"><FiX size={20} /></button>
+            {/* Modal header */}
+            <div className="flex items-center justify-between px-6 py-4 bg-gray-50 dark:bg-gray-800 rounded-t-2xl border-b border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white">
+                {editing ? 'Edit Product' : 'Add New Product'}
+              </h2>
+              <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition">
+                <FiX size={20} />
+              </button>
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Name */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Product Name *</label>
                 <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="e.g. Premium Medjool Dates"
-                  className="w-full border dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:bg-gray-800 dark:text-white" />
+                  placeholder="e.g. Premium Medjool Dates" className={inputCls} />
               </div>
 
-              {/* Category */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Category *</label>
-                <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))}
-                  className="w-full border dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:bg-gray-800 dark:text-white">
+                <select value={form.category} onChange={e => setForm(p => ({ ...p, category: e.target.value }))} className={inputCls}>
                   {CATEGORIES.map(c => (
                     <option key={c} value={c}>{c === 'essence' ? 'Flavoured Essence' : c.charAt(0).toUpperCase() + c.slice(1)}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Price per kg */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">
                   Price per Kg (₹) * <span className="text-gray-400 font-normal">— other weights auto-calculated</span>
                 </label>
                 <input type="number" min="1" value={form.pricePerKg}
                   onChange={e => setForm(p => ({ ...p, pricePerKg: e.target.value }))}
-                  placeholder="e.g. 1200"
-                  className="w-full border dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:bg-gray-800 dark:text-white" />
-
-                {/* Auto-calculated price preview */}
+                  placeholder="e.g. 1200" className={inputCls} />
                 {preview && (
                   <div className="mt-2 grid grid-cols-4 gap-2">
                     {WEIGHTS.map(w => (
-                      <div key={w.label} className="text-center bg-green-50 dark:bg-green-900/10 rounded-lg py-2 border border-purple-100 dark:border-purple-800">
+                      <div key={w.label} className="text-center bg-green-50 dark:bg-green-900/10 rounded-lg py-2 border border-green-100 dark:border-green-800">
                         <p className="text-xs text-gray-500 dark:text-gray-400">{w.label}</p>
-                        <p className="text-sm font-bold" className="text-\[#3d6b35\] dark:text-green-400">₹{preview[w.label]}</p>
+                        <p className="text-sm font-bold text-green-700 dark:text-green-400">₹{preview[w.label]}</p>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
 
-              {/* Description */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Description *</label>
                 <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
                   rows={3} placeholder="Describe the product — quality, origin, benefits..."
-                  className="w-full border dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-300 dark:bg-gray-800 dark:text-white resize-none" />
+                  className={inputCls + " resize-none"} />
               </div>
 
-              {/* Images */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Product Images (max 5)</label>
                 <input type="file" multiple accept="image/jpeg,image/png,image/webp"
                   onChange={e => setFiles(Array.from(e.target.files).slice(0, 5))}
-                  className="w-full text-sm text-gray-500" />
+                  className="w-full text-sm text-gray-500 dark:text-gray-400" />
                 {files.length > 0 && <p className="text-xs text-green-600 mt-1">{files.length} image(s) selected</p>}
                 {editing && <p className="text-xs text-gray-400 mt-1">Leave empty to keep existing images</p>}
               </div>
 
-              {/* Toggles row */}
               <div className="flex gap-6">
-                {/* In Stock toggle */}
                 <label className="flex items-center gap-3 cursor-pointer">
                   <div onClick={() => setForm(p => ({ ...p, inStock: !p.inStock }))}
                     className={`w-10 h-5 rounded-full transition-colors relative ${form.inStock ? 'bg-green-500' : 'bg-red-400'}`}>
                     <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.inStock ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    {form.inStock ? '✅ In Stock' : '❌ Out of Stock'}
-                  </span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300">{form.inStock ? '✅ In Stock' : '❌ Out of Stock'}</span>
                 </label>
-
-                {/* Featured toggle */}
                 <label className="flex items-center gap-3 cursor-pointer">
                   <div onClick={() => setForm(p => ({ ...p, isFeatured: !p.isFeatured }))}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${form.isFeatured ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                    className={`w-10 h-5 rounded-full transition-colors relative ${form.isFeatured ? 'bg-green-600' : 'bg-gray-300'}`}>
                     <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${form.isFeatured ? 'translate-x-5' : 'translate-x-0.5'}`} />
                   </div>
                   <span className="text-sm text-gray-700 dark:text-gray-300">Show on Homepage</span>
                 </label>
               </div>
 
-              {/* Buttons */}
               <div className="flex gap-3 pt-2">
                 <button type="submit" disabled={saving}
-                  className="flex-1 text-white py-2.5 rounded-xl font-semibold hover:opacity-80 disabled:opacity-50 transition"
-                  className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226]">
+                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition">
                   {saving ? 'Saving...' : editing ? 'Update Product' : 'Add Product'}
                 </button>
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 border dark:border-gray-700 py-2.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 dark:text-gray-300">
+                  className="flex-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 py-2.5 rounded-xl font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                   Cancel
                 </button>
               </div>
@@ -218,7 +207,7 @@ export default function AdminProducts() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow border border-gray-100 dark:border-gray-800 overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-white text-xs uppercase tracking-wider" className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226]">
+              <tr className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226] text-white text-xs uppercase tracking-wider">
                 <th className="px-4 py-3 text-left">Product</th>
                 <th className="px-4 py-3 text-left">Category</th>
                 <th className="px-4 py-3 text-left">Per Kg</th>
@@ -230,10 +219,10 @@ export default function AdminProducts() {
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
               {products.map(p => (
-                <tr key={p._id} className="hover:bg-purple-50 dark:hover:bg-gray-800 transition">
+                <tr key={p._id} className="hover:bg-gray-50 dark:hover:bg-gray-800 transition">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-lg bg-purple-50 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
+                      <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center overflow-hidden flex-shrink-0">
                         {p.images?.[0]
                           ? <img src={p.images[0]} alt="" className="w-full h-full object-cover" onError={e => { e.target.style.display = 'none'; }} />
                           : <span className="text-base">🌴</span>}
@@ -242,7 +231,7 @@ export default function AdminProducts() {
                     </div>
                   </td>
                   <td className="px-4 py-3 capitalize text-gray-500 dark:text-gray-400">{p.category}</td>
-                  <td className="px-4 py-3 font-semibold" className="text-\[#3d6b35\] dark:text-green-400">₹{p.pricePerKg}</td>
+                  <td className="px-4 py-3 font-semibold text-green-700 dark:text-green-400">₹{p.pricePerKg}</td>
                   <td className="px-4 py-3 text-gray-600 dark:text-gray-400 text-xs">
                     ₹{p.prices?.['100g']} / ₹{p.prices?.['250g']} / ₹{p.prices?.['500g']}
                   </td>
@@ -258,10 +247,12 @@ export default function AdminProducts() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex gap-2">
-                      <button onClick={() => openEdit(p)} className="text-white p-1.5 rounded-lg hover:opacity-80" className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226]" title="Edit">
+                      <button onClick={() => openEdit(p)}
+                        className="p-1.5 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition" title="Edit">
                         <FiEdit2 size={13} />
                       </button>
-                      <button onClick={() => handleDelete(p._id, p.name)} className="bg-red-500 text-white p-1.5 rounded-lg hover:bg-red-600" title="Delete">
+                      <button onClick={() => handleDelete(p._id, p.name)}
+                        className="p-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition" title="Delete">
                         <FiTrash2 size={13} />
                       </button>
                     </div>
@@ -281,5 +272,3 @@ export default function AdminProducts() {
     </div>
   );
 }
-
-
