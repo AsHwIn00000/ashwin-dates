@@ -14,7 +14,8 @@ app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
 // CORS
 const allowedOrigins = [
-  process.env.FRONTEND_URL,
+  process.env.FRONTEND_URL?.replace(/\/$/, ''),
+  'https://ashwin-dates.vercel.app',
   'http://localhost:5173',
 ].filter(Boolean);
 

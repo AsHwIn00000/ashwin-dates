@@ -1,7 +1,9 @@
 import axios from 'axios';
 
+const BASE_URL = import.meta.env.VITE_API_URL ?? 'https://ashwin-dates.onrender.com/api';
+
 const api = axios.create({ 
-  baseURL: import.meta.env.VITE_API_URL || '/api' 
+  baseURL: BASE_URL,
 });
 
 // Attach JWT token to every request
