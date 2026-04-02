@@ -95,6 +95,7 @@ export default function Checkout() {
   };
 
   if (cart.length === 0) { navigate('/cart'); return null; }
+  if (user?.role === 'admin') { navigate('/admin'); return null; }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">

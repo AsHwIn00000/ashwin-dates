@@ -11,6 +11,7 @@ export default function Cart() {
 
   const handleCheckout = () => {
     if (!user) { toast.error('Please login to checkout'); navigate('/login'); return; }
+    if (user.role === 'admin') { toast.error('Admins cannot place orders'); return; }
     navigate('/checkout');
   };
 

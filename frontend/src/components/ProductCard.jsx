@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { FiShoppingCart, FiStar } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
@@ -8,12 +9,15 @@ const WEIGHTS = ['100g', '250g', '500g', '1kg'];
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
+  const { user } = useAuth();
   const [selectedWeight, setSelectedWeight] = useState('500g');
   const price = product.prices?.[selectedWeight] || product.pricePerKg || 0;
+  const isAdmin = user?.role === 'admin';
 
   const handleAdd = (e) => {
     e.preventDefault();
     if (!product.inStock) return;
+    if (isAdmin) { toast.error('Admins cannot add to cart'); return; }
     addToCart({ ...product, selectedWeight, price }, 1);
     toast.success(`${product.name} (${selectedWeight}) added to cart`);
   };
@@ -67,7 +71,8 @@ export default function ProductCard({ product }) {
 
         <div className="flex items-center justify-between mt-auto">
           <span className="text-base font-bold text-[#3d6b35] dark:text-green-400">₹{price}</span>
-          <button onClick={handleAdd} disabled={!product.inStock}
+          <button onClick={handleAdd} disabled={!product.inStock || isAdmin}
+            title={isAdmin ? 'Admins cannot purchase' : ''}
             className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226] text-white p-2 rounded-full hover:opacity-70 transition disabled:opacity-30 disabled:cursor-not-allowed">
             <FiShoppingCart size={14} />
           </button>
