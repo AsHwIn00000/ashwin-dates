@@ -26,16 +26,16 @@ export default function AdminDashboard() {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
       {/* Header */}
-      <div className="rounded-2xl text-white p-6 mb-8" className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226]">
-        <h1 className="text-2xl font-extrabold">Admin Dashboard</h1>
-        <p className="text-purple-200 text-sm mt-1">Manage your store — products, orders, and customers</p>
+      <div className="rounded-2xl border border-gray-100 dark:border-gray-800 p-6 mb-8">
+        <h1 className="text-2xl font-extrabold text-gray-800 dark:text-white">Admin Dashboard</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Manage your store — products, orders, and customers</p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {cards.map(c => (
           <div key={c.label} className="bg-white dark:bg-gray-900 rounded-2xl shadow p-5 flex items-center gap-4 border border-gray-100 dark:border-gray-800">
-            <div className="text-white p-3 rounded-xl" className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226]">{c.icon}</div>
+            <div className="text-gray-600 dark:text-gray-300 p-3 rounded-xl border border-gray-100 dark:border-gray-700">{c.icon}</div>
             <div>
               <p className="text-2xl font-bold text-gray-800 dark:text-white">{c.value}</p>
               <p className="text-xs text-gray-500 dark:text-gray-400">{c.label}</p>
