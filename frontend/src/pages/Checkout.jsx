@@ -59,7 +59,7 @@ export default function Checkout() {
       if (paymentMethod === 'razorpay') {
         const { data: rzp } = await api.post('/payment/create-order', { orderId: order._id });
         const options = {
-          key: rzp.key, amount: rzp.amount, currency: rzp.currency,
+          key: rzp.key || import.meta.env.VITE_RAZORPAY_KEY_ID, amount: rzp.amount, currency: rzp.currency,
           name: 'Ashwin Dates & Dry Fruits', description: 'Order Payment',
           order_id: rzp.razorpayOrderId,
           handler: async (response) => {
