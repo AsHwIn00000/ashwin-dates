@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api/axios';
 import Spinner from '../components/Spinner';
-import { FiDownload } from 'react-icons/fi';
+import toast from 'react-hot-toast';
+import { FiDownload, FiRotateCcw } from 'react-icons/fi';
 
 const STATUS_COLORS = {
   processing: 'bg-yellow-100 text-yellow-700',
@@ -30,6 +31,13 @@ export default function Orders() {
     a.href = url;
     a.download = `order-${orderId}.pdf`;
     a.click();
+  };
+
+  const requestReturn = (orderId) => {
+    const subject = encodeURIComponent(`Return Request - Order ${orderId}`);
+    const body = encodeURIComponent(`Hi,\n\nI would like to request a return for my order.\n\nOrder ID: ${orderId}\nReason: [Please describe the issue]\n\nThank you.`);
+    window.open(`mailto:preamkumar.t.m1978@gmail.com?subject=${subject}&body=${body}`);
+    toast.success('Return request email opened');
   };
 
   if (loading) return <Spinner size="lg" />;
@@ -69,6 +77,14 @@ export default function Orders() {
                 >
                   <FiDownload size={14} /> PDF
                 </button>
+                {order.orderStatus === 'delivered' && (
+                  <button
+                    onClick={() => requestReturn(order._id)}
+                    className="flex items-center gap-1 text-sm text-orange-600 hover:text-orange-800 border border-orange-300 px-3 py-1 rounded-full"
+                  >
+                    <FiRotateCcw size={14} /> Return
+                  </button>
+                )}
               </div>
               <div className="border-t pt-3">
                 <p className="text-xs text-gray-400 mb-2">Items</p>

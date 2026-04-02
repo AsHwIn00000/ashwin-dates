@@ -5,7 +5,13 @@ import ProductCard from '../components/ProductCard';
 import Spinner from '../components/Spinner';
 import { FiSearch } from 'react-icons/fi';
 
-const CATEGORIES = ['all', 'dates', 'almonds', 'cashews', 'pistachios', 'combo', 'spices', 'seeds', 'essence', 'others'];
+const CATEGORIES = [
+  { value: 'all', label: 'All' },
+  { value: 'dates', label: 'Dates' },
+  { value: 'dry-fruits', label: 'Dry Fruits' },
+  { value: 'spices', label: 'Spices' },
+  { value: 'essence', label: 'Flavoured Essence' },
+];
 
 function useDebounce(value, delay) {
   const [debounced, setDebounced] = useState(value);
@@ -34,7 +40,13 @@ export default function Products() {
     setLoading(true);
     try {
       const params = { page, limit: 12 };
-      if (category !== 'all') params.category = category;
+      if (category !== 'all') {
+        if (category === 'dry-fruits') {
+          params.category = 'almonds,cashews,pistachios,combo,seeds,others';
+        } else {
+          params.category = category;
+        }
+      }
       if (debouncedSearch) params.search = debouncedSearch;
       if (sort) params.sort = sort;
       const { data } = await api.get('/products', { params });
@@ -82,15 +94,15 @@ export default function Products() {
       <div className="flex gap-2 flex-wrap mb-6">
         {CATEGORIES.map(c => (
           <button
-            key={c}
-            onClick={() => setCategory(c)}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium capitalize transition ${
-              category === c
-                ? 'bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow'
-                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-violet-100 dark:hover:bg-violet-900 border dark:border-gray-700'
+            key={c.value}
+            onClick={() => setCategory(c.value)}
+            className={`px-4 py-1.5 rounded-full text-sm font-medium transition ${
+              category === c.value
+                ? 'bg-gradient-to-r from-[#3d6b35] to-[#6b4226] text-white shadow'
+                : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-green-50 dark:hover:bg-gray-700 border dark:border-gray-700'
             }`}
           >
-            {c === 'essence' ? 'Flavoured Essence' : c}
+            {c.label}
           </button>
         ))}
       </div>

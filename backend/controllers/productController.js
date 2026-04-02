@@ -4,7 +4,10 @@ exports.getProducts = async (req, res) => {
   try {
     const { category, search, page = 1, limit = 12, sort } = req.query;
     const query = {};
-    if (category && category !== 'all') query.category = category;
+    if (category && category !== 'all') {
+      const cats = category.split(',');
+      query.category = cats.length > 1 ? { $in: cats } : category;
+    }
     if (search) query.$text = { $search: search };
 
     let sortOption = { createdAt: -1 };
