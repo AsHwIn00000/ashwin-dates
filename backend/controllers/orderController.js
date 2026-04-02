@@ -168,6 +168,22 @@ exports.getAllOrders = async (req, res) => {
   }
 };
 
+exports.cancelPendingOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.userId.toString() !== req.user._id.toString())
+      return res.status(403).json({ message: 'Not authorized' });
+    // only cancel if still pending (not paid)
+    if (order.paymentStatus === 'paid')
+      return res.status(400).json({ message: 'Cannot cancel a paid order' });
+    await Order.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Order cancelled' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { orderStatus } = req.body;

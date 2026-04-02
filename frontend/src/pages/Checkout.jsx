@@ -69,6 +69,14 @@ export default function Checkout() {
             await downloadPDF(order._id);
             navigate('/orders');
           },
+          modal: {
+            ondismiss: async () => {
+              // cancel the pending order if user closes popup
+              try { await api.delete(`/orders/${order._id}/pending`); } catch { /* silent */ }
+              toast.error('Payment cancelled');
+              setLoading(false);
+            }
+          },
           prefill: { name: form.name, contact: form.phone },
           theme: { color: '#3d6b35' },
         };
