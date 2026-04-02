@@ -2,6 +2,21 @@ const Order = require('../models/Order');
 const Product = require('../models/Product');
 const PDFDocument = require('pdfkit');
 
+// SMS notification helper
+const sendAdminSMS = async (message) => {
+  try {
+    if (!process.env.TWILIO_ACCOUNT_SID || !process.env.TWILIO_AUTH_TOKEN) return;
+    const twilio = require('twilio')(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+    await twilio.messages.create({
+      body: message,
+      from: process.env.TWILIO_PHONE,
+      to: process.env.ADMIN_PHONE || '+919442114559',
+    });
+  } catch (err) {
+    console.error('SMS failed:', err.message); // don't crash the order
+  }
+};
+
 const BRAND_COLOR = '#360B5E';
 const BRAND_NAME = 'Ashwin Dates & Dry Fruits';
 const SUPPORT_EMAIL = 'preamkumar.t.m1978@gmail.com';
@@ -42,6 +57,12 @@ exports.createOrder = async (req, res) => {
       paymentStatus: 'pending',
       orderStatus: 'processing',
     });
+
+    // Notify admin via SMS
+    const itemsSummary = orderProducts.map(p => `${p.name} (${p.weight} x${p.quantity})`).join(', ');
+    await sendAdminSMS(
+      `🛒 New Order!\nCustomer: ${shippingAddress.name}\nPhone: ${shippingAddress.phone}\nItems: ${itemsSummary}\nTotal: ₹${totalAmount}\nPayment: ${paymentMethod.toUpperCase()}\nOrder ID: ${order._id}`
+    );
 
     res.status(201).json(order);
   } catch (err) {
