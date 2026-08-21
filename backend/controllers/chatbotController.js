@@ -34,7 +34,7 @@ exports.chat = async (req, res) => {
       return res.status(400).json({ message: 'Messages array required' });
 
     const completion = await groq.chat.completions.create({
-      model: 'llama-3.3-70b-versatile',
+      model: process.env.CHATBOT_MODEL || 'openai/gpt-oss-20b',
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
         ...messages.slice(-10), // keep last 10 messages for context

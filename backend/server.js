@@ -7,6 +7,13 @@ const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
+const dns = require('dns');
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('Warning: Could not set custom DNS servers, SRV resolution might fail:', e.message);
+}
+
 const app = express();
 
 // Security headers

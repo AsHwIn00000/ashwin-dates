@@ -15,7 +15,7 @@ export default function Navbar() {
   const handleLogout = () => { logout(); navigate('/'); setOpen(false); };
 
   return (
-    <nav className="bg-gradient-to-r from-[#3d6b35] to-[#6b4226] sticky top-0 z-50 shadow-lg">
+    <nav className="bg-gradient-to-r from-[#3F6A35] via-[#5A582E] to-[#6B4327] sticky top-0 z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="Ashwin Dates" className="h-10 w-10 object-contain rounded-full bg-white/10 p-0.5" />
@@ -29,7 +29,7 @@ export default function Navbar() {
           <Link to="/" className="hover:text-white transition">Home</Link>
           <Link to="/products" className="hover:text-white transition">Products</Link>
           {user?.role === 'admin' && (
-            <Link to="/admin" className="flex items-center gap-1 bg-white text-[#3d6b35] font-bold px-3 py-1 rounded-full text-xs hover:bg-green-50 transition">
+            <Link to="/admin" className="flex items-center gap-1 bg-white text-[#3F6A35] font-bold px-3 py-1 rounded-full text-xs hover:bg-green-50 transition">
               <FiSettings size={12} /> Admin Panel
             </Link>
           )}
@@ -42,7 +42,7 @@ export default function Navbar() {
           <Link to="/cart" className="relative p-2">
             <FiShoppingCart size={20} className="text-green-100 hover:text-white" />
             {count > 0 && (
-              <span className="absolute top-0 right-0 bg-yellow-400 text-[#3d6b35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+              <span className="absolute top-0 right-0 bg-yellow-400 text-[#3F6A35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
                 {count}
               </span>
             )}
@@ -56,7 +56,7 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <Link to="/login" className="bg-white text-[#3d6b35] px-5 py-1.5 rounded-full text-sm font-bold hover:bg-green-50 transition">
+            <Link to="/login" className="bg-white text-[#3F6A35] px-5 py-1.5 rounded-full text-sm font-bold hover:bg-green-50 transition">
               Login
             </Link>
           )}
@@ -69,7 +69,7 @@ export default function Navbar() {
           <Link to="/cart" className="relative">
             <FiShoppingCart size={20} className="text-green-100" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 bg-yellow-400 text-[#3d6b35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+              <span className="absolute -top-1 -right-1 bg-yellow-400 text-[#3F6A35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
                 {count}
               </span>
             )}
@@ -81,7 +81,7 @@ export default function Navbar() {
       </div>
 
       {open && (
-        <div className="md:hidden bg-gradient-to-b from-[#3d6b35] to-[#6b4226] border-t border-white/10 px-6 py-4 flex flex-col gap-4 text-sm text-green-100">
+        <div className="md:hidden bg-gradient-to-b from-[#3F6A35] via-[#5A582E] to-[#6B4327] border-t border-white/10 px-6 py-4 flex flex-col gap-4 text-sm text-green-100">
           <Link to="/" onClick={() => setOpen(false)} className="hover:text-white">Home</Link>
           <Link to="/products" onClick={() => setOpen(false)} className="hover:text-white">Products</Link>
           <Link to="/cart" onClick={() => setOpen(false)} className="hover:text-white">Cart ({count})</Link>

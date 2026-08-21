@@ -12,18 +12,43 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
+    if (data.status !== 'PENDING_VERIFICATION') {
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      setUser(data.user);
+    }
+    return data;
+  };
+
+  const register = async (name, email, password) => {
+    const { data } = await api.post('/auth/register', { name, email, password });
+    return data;
+  };
+
+  const sendOtp = async (email, purpose) => {
+    const { data } = await api.post('/auth/send-otp', { email, purpose });
+    return data;
+  };
+
+  const verifyRegisterOtp = async (email, otp) => {
+    const { data } = await api.post('/auth/verify-register-otp', { email, otp });
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
   };
 
-  const register = async (name, email, password) => {
-    const { data } = await api.post('/auth/register', { name, email, password });
+  const googleLogin = async (idToken) => {
+    const { data } = await api.post('/auth/google-login', { idToken });
     localStorage.setItem('token', data.token);
     localStorage.setItem('user', JSON.stringify(data.user));
     setUser(data.user);
     return data.user;
+  };
+
+  const resetPasswordWithOtp = async (email, otp, password) => {
+    const { data } = await api.post('/auth/reset-password-otp', { email, otp, password });
+    return data;
   };
 
   const logout = () => {
@@ -33,7 +58,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, sendOtp, verifyRegisterOtp, googleLogin, resetPasswordWithOtp, loading }}>
       {children}
     </AuthContext.Provider>
   );
