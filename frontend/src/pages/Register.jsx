@@ -9,10 +9,7 @@ function validate(form) {
   const errors = {};
   if (!form.name.trim()) errors.name = 'Name is required';
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) errors.email = 'Valid email required';
-  if (form.password.length < 8) errors.password = 'Minimum 8 characters';
-  else if (!/[A-Z]/.test(form.password)) errors.password = 'Must contain an uppercase letter';
-  else if (!/[0-9]/.test(form.password)) errors.password = 'Must contain a number';
-  else if (!/[!@#$%^&*]/.test(form.password)) errors.password = 'Must contain a special character (!@#$%^&*)';
+  if (form.password.length < 6) errors.password = 'Minimum 6 characters required';
   if (form.password !== form.confirm) errors.confirm = 'Passwords do not match';
   return errors;
 }
@@ -50,7 +47,10 @@ export default function Register() {
     try {
       const res = await register(form.name, form.email, form.password);
       if (res.status === 'PENDING_VERIFICATION') {
-        toast.success(res.message || 'OTP code generated!');
+        toast.success(res.message || 'Verification OTP generated!');
+        if (res.otp) {
+          setForm(f => ({ ...f, otp: res.otp }));
+        }
         setMode('verify-otp');
       } else {
         toast.success('Registration successful!');

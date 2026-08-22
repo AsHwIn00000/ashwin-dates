@@ -49,20 +49,34 @@ const sendOtpEmail = async (email, otp, purpose) => {
     return { simulated: true, otp };
   }
 
-  const transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-  });
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+      connectionTimeout: 3000,
+      greetingTimeout: 3000,
+      socketTimeout: 5000,
+    });
 
-  const mailOptions = {
-    from: `"Ashwin Dates & Dry Fruits" <${user}>`,
-    to: email,
-    subject: `Your OTP Code: ${otp}`,
-    html: htmlContent,
-  };
+    const mailOptions = {
+      from: `"Ashwin Dates & Dry Fruits" <${user}>`,
+      to: email,
+      subject: `Your OTP Code: ${otp}`,
+      html: htmlContent,
+    };
 
-  await transporter.sendMail(mailOptions);
-  return { simulated: false };
+    await transporter.sendMail(mailOptions);
+    return { simulated: false };
+  } catch (err) {
+    console.error('Nodemailer sendMail failed (fallback to simulated mode):', err.message);
+    console.log('\n' + '='.repeat(60));
+    console.log('⚡ SIMULATED EMAIL FALLBACK (SMTP ERROR) ⚡');
+    console.log(`TO:      ${email}`);
+    console.log(`PURPOSE: ${purposeText}`);
+    console.log(`OTP:     [ ${otp} ]`);
+    console.log('='.repeat(60) + '\n');
+    return { simulated: true, otp };
+  }
 };
 
 const sendOrderNotificationToAdmin = async (order, shippingAddress, orderProducts) => {

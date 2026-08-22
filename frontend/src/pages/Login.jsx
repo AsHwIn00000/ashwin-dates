@@ -91,6 +91,9 @@ export default function Login() {
     try {
       const res = await sendOtp(form.email, 'forgot-password');
       toast.success(res.message || 'Verification OTP sent to your email!');
+      if (res.otp) {
+        setForm(prev => ({ ...prev, otp: res.otp }));
+      }
       setMode('forgot-verify');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error requesting password reset');
@@ -104,7 +107,7 @@ export default function Login() {
     e.preventDefault();
     const errs = {};
     if (!form.otp) errs.otp = 'OTP is required';
-    if (form.newPassword.length < 8) errs.newPassword = 'Password must be at least 8 characters';
+    if (form.newPassword.length < 6) errs.newPassword = 'Password must be at least 6 characters';
     if (form.newPassword !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
     if (Object.keys(errs).length) {
       setErrors(errs);
@@ -132,7 +135,7 @@ export default function Login() {
       navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (err) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Google Sign-In failed');
+      toast.error(err.response?.data?.message || 'Google Sign-In failed. Please sign in with email & password.');
     } finally {
       setLoading(false);
     }

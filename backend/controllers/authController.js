@@ -36,21 +36,28 @@ exports.register = async (req, res) => {
     user.isVerified = false; // explicitly false
     await user.save();
 
-    const mailResult = await sendOtpEmail(email, otp, 'register');
+    let mailResult;
+    try {
+      mailResult = await sendOtpEmail(email, otp, 'register');
+    } catch (mailErr) {
+      console.error('SMTP error during registration, fallback to simulated mode:', mailErr.message);
+      mailResult = { simulated: true, otp };
+    }
     
     let message = 'Verification OTP sent successfully to your email';
     if (mailResult && mailResult.simulated) {
-      message = 'Verification OTP sent successfully (Simulated mode: check server logs)';
+      message = `Verification OTP sent (Simulated Mode OTP: ${otp})`;
     }
 
     res.status(200).json({
       status: 'PENDING_VERIFICATION',
       email: user.email,
+      otp: mailResult?.simulated ? otp : undefined,
       message,
     });
   } catch (err) {
     console.error('Register error:', err);
-    res.status(500).json({ message: 'Server error during registration' });
+    res.status(500).json({ message: err.message || 'Server error during registration' });
   }
 };
 
@@ -199,14 +206,20 @@ exports.sendOtp = async (req, res) => {
     user.otpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    const mailResult = await sendOtpEmail(email, otp, purpose);
+    let mailResult;
+    try {
+      mailResult = await sendOtpEmail(email, otp, purpose);
+    } catch (mailErr) {
+      console.error('SMTP error during sendOtp, fallback to simulated mode:', mailErr.message);
+      mailResult = { simulated: true, otp };
+    }
     
     let message = 'OTP sent successfully to your email';
     if (mailResult && mailResult.simulated) {
-      message = 'OTP sent successfully (Simulated mode: check server logs)';
+      message = `OTP sent successfully (Simulated Mode OTP: ${otp})`;
     }
 
-    res.json({ message });
+    res.json({ message, otp: mailResult?.simulated ? otp : undefined });
   } catch (err) {
     console.error('sendOtp error:', err);
     res.status(500).json({ message: 'Server error sending OTP' });

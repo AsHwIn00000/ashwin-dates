@@ -1,3 +1,10 @@
+const dns = require('dns');
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {
+  console.warn('Warning: Could not set custom DNS servers:', e.message);
+}
+
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -6,13 +13,6 @@ const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
-
-const dns = require('dns');
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch (e) {
-  console.warn('Warning: Could not set custom DNS servers, SRV resolution might fail:', e.message);
-}
 
 const app = express();
 
@@ -64,21 +64,40 @@ app.use('/api/payment', require('./routes/payment'));
 app.use('/api/chatbot', require('./routes/chatbot'));
 
 // Health check
-app.get('/api/health', (req, res) => res.json({ status: 'OK' }));
+app.get('/api/health', (req, res) => res.json({ status: 'OK', dbState: mongoose.connection.readyState }));
 
-// Connect DB and start server
-mongoose.connect(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
-  family: 4, // Force IPv4 - fixes DNS/SRV issues on some networks
-})
-  .then(() => {
-    console.log('MongoDB connected');
-    app.listen(process.env.PORT || 5000, () =>
-      console.log(`Server running on port ${process.env.PORT || 5000}`)
-    );
-  })
-  .catch(err => {
-    console.error('DB connection error:', err.message);
-    process.exit(1);
-  });
+// Database readiness check
+app.use((req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: 'Database connecting or offline. Please verify MongoDB Atlas IP Whitelist (Network Access -> 0.0.0.0/0).'
+    });
+  }
+  next();
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on http://127.0.0.1:${PORT}`);
+});
+
+// Connect DB
+const connectDB = async () => {
+  try {
+    const mongoUri = process.env.MONGO_URI;
+    console.log('Connecting to MongoDB...');
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
+      family: 4,
+    });
+    console.log('✅ MongoDB connected successfully');
+  } catch (err) {
+    console.error('❌ MongoDB connection error:', err.message);
+    console.log('Retrying MongoDB connection in 5 seconds...');
+    setTimeout(connectDB, 5000);
+  }
+};
+
+connectDB();

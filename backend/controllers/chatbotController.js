@@ -27,25 +27,63 @@ Store policies:
 
 Be concise, friendly, and helpful. Always recommend products when relevant. If asked about specific order details, ask them to check their order history in the account section.`;
 
+const getFallbackReply = (userQuery) => {
+  const query = (userQuery || '').toLowerCase();
+  
+  if (query.includes('hi') || query.includes('hello') || query.includes('hey')) {
+    return "Hi! 👋 Welcome to Ashwin Dates & Dry Fruits! How can I help you today? You can ask about our Medjool dates, almonds, cashews, order tracking, shipping, or discounts!";
+  }
+  if (query.includes('date') || query.includes('ajwa') || query.includes('medjool')) {
+    return "🌴 We offer premium Medjool Dates and Madinah Ajwa Dates! They are rich in natural iron, fiber, and essential minerals. Check out our 'Dates' category for details and weight options.";
+  }
+  if (query.includes('ship') || query.includes('deliver') || query.includes('charge')) {
+    return "🚚 Shipping is ₹90 per kg across India. Orders are processed swiftly and delivered within 3-5 business days!";
+  }
+  if (query.includes('order') || query.includes('track')) {
+    return "📦 You can view and track all your previous purchases by clicking 'My Orders' in the top menu!";
+  }
+  if (query.includes('pay') || query.includes('cod') || query.includes('cash')) {
+    return "💳 We accept online payments via Razorpay (UPI, Credit/Debit cards, Netbanking) and offer Cash on Delivery (COD) as well!";
+  }
+  if (query.includes('contact') || query.includes('phone') || query.includes('email') || query.includes('call')) {
+    return "📞 Contact Us:\nPhone: +91 9442114559\nEmail: ashwindatesanddryfruits@gmail.com";
+  }
+  if (query.includes('almond') || query.includes('cashew') || query.includes('pista') || query.includes('dry fruit')) {
+    return "🥜 We offer California Almonds, Whole W240 Cashews, Iranian Pistachios, and Combo Packs! All our dry fruits are fresh and nutrient-dense.";
+  }
+  
+  return "Welcome to Ashwin Dates & Dry Fruits! 🌴 We provide top quality Medjool & Ajwa dates, almonds, cashews, spices, and seeds. How can I assist you with your order or product details today?";
+};
+
 exports.chat = async (req, res) => {
   try {
     const { messages } = req.body;
-    if (!messages || !Array.isArray(messages))
+    if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ message: 'Messages array required' });
+    }
 
-    const completion = await groq.chat.completions.create({
-      model: process.env.CHATBOT_MODEL || 'openai/gpt-oss-20b',
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        ...messages.slice(-10), // keep last 10 messages for context
-      ],
-      max_tokens: 500,
-      temperature: 0.7,
-    });
+    const lastUserMessage = [...messages].reverse().find(m => m.role === 'user')?.content || '';
 
-    const reply = completion.choices[0]?.message?.content || 'Sorry, I could not process that.';
-    res.json({ reply });
+    try {
+      const completion = await groq.chat.completions.create({
+        model: process.env.CHATBOT_MODEL || 'llama-3.3-70b-versatile',
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          ...messages.slice(-10),
+        ],
+        max_tokens: 500,
+        temperature: 0.7,
+      });
+
+      const reply = completion.choices[0]?.message?.content || getFallbackReply(lastUserMessage);
+      res.json({ reply });
+    } catch (apiErr) {
+      console.warn('Groq API fallback triggered:', apiErr.message);
+      const reply = getFallbackReply(lastUserMessage);
+      res.json({ reply });
+    }
   } catch (err) {
-    res.status(500).json({ message: 'Chatbot error: ' + err.message });
+    console.error('Chatbot route error:', err);
+    res.json({ reply: "Hi! Welcome to Ashwin Dates & Dry Fruits! How can I assist you with our dates, dry fruits, or orders today?" });
   }
 };
