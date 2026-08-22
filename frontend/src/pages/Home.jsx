@@ -6,16 +6,110 @@ import Spinner from '../components/Spinner';
 import { FiTruck, FiShield, FiCheckCircle, FiShoppingBag, FiArrowRight } from 'react-icons/fi';
 
 const categories = [
-  { name: 'Premium Dates', value: 'dates', gradient: 'from-amber-500 to-orange-600', count: '12 Items' },
-  { name: 'Nutritious Dry Fruits', value: 'almonds', gradient: 'from-yellow-500 to-amber-600', count: '18 Items' },
-  { name: 'Aromatic Spices', value: 'spices', gradient: 'from-red-500 to-rose-600', count: '8 Items' },
-  { name: 'Value Combos', value: 'combo', gradient: 'from-emerald-500 to-teal-600', count: '5 Items' },
-  { name: 'Healthy Seeds', value: 'seeds', gradient: 'from-lime-500 to-emerald-600', count: '10 Items' },
-  { name: 'Flavoured Essence', value: 'essence', gradient: 'from-orange-500 to-red-600', count: '6 Items' },
+  { 
+    name: 'Premium Dates', 
+    value: 'dates', 
+    count: '12 Items', 
+    initial: 'D', 
+    cardBg: 'bg-[#FFF3EC] dark:bg-orange-950/40', 
+    borderColor: 'border-[#FDDCC9] dark:border-orange-800/40 hover:border-orange-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-orange-600 border-orange-200 dark:border-orange-800', 
+    titleText: 'text-orange-950 dark:text-orange-100', 
+    countText: 'text-orange-700/80 dark:text-orange-300/80' 
+  },
+  { 
+    name: 'Nutritious Dry Fruits', 
+    value: 'dry-fruits', 
+    count: '18 Items', 
+    initial: 'DF', 
+    cardBg: 'bg-[#FFF9E6] dark:bg-amber-950/40', 
+    borderColor: 'border-[#FCEBAE] dark:border-amber-800/40 hover:border-amber-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-amber-600 border-amber-200 dark:border-amber-800', 
+    titleText: 'text-amber-950 dark:text-amber-100', 
+    countText: 'text-amber-700/80 dark:text-amber-300/80' 
+  },
+  { 
+    name: 'Nuts', 
+    value: 'almonds', 
+    count: '15 Items', 
+    initial: 'N', 
+    cardBg: 'bg-[#F7EFE9] dark:bg-[rgba(120,53,4,0.25)]', 
+    borderColor: 'border-[#E6D4C5] dark:border-[rgba(120,53,4,0.5)] hover:border-[#78350F]', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-[#78350F] dark:text-[#E89C5D] border-[#E6D4C5] dark:border-[#78350F]', 
+    titleText: 'text-[#3B1A05] dark:text-[#F3D3B8]', 
+    countText: 'text-[#78350F]/80 dark:text-[#D98A48]/80' 
+  },
+  { 
+    name: 'Aromatic Spices', 
+    value: 'spices', 
+    count: '8 Items', 
+    initial: 'S', 
+    cardBg: 'bg-[#FFEAEA] dark:bg-red-950/40', 
+    borderColor: 'border-[#FBCACA] dark:border-red-800/40 hover:border-red-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-red-600 border-red-200 dark:border-red-800', 
+    titleText: 'text-red-950 dark:text-red-100', 
+    countText: 'text-red-700/80 dark:text-red-300/80' 
+  },
+  { 
+    name: 'Value Combos', 
+    value: 'combo', 
+    count: '5 Items', 
+    initial: 'C', 
+    cardBg: 'bg-[#E6FAF7] dark:bg-teal-950/40', 
+    borderColor: 'border-[#B5F2E9] dark:border-teal-800/40 hover:border-teal-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-teal-600 border-teal-200 dark:border-teal-800', 
+    titleText: 'text-teal-950 dark:text-teal-100', 
+    countText: 'text-teal-700/80 dark:text-teal-300/80' 
+  },
+  { 
+    name: 'Healthy Seeds', 
+    value: 'seeds', 
+    count: '10 Items', 
+    initial: 'SD', 
+    cardBg: 'bg-[#EAFCEB] dark:bg-emerald-950/40', 
+    borderColor: 'border-[#BEF4C3] dark:border-emerald-800/40 hover:border-emerald-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-emerald-600 border-emerald-200 dark:border-emerald-800', 
+    titleText: 'text-emerald-950 dark:text-emerald-100', 
+    countText: 'text-emerald-700/80 dark:text-emerald-300/80' 
+  },
+  { 
+    name: 'Beverages & Syrups', 
+    value: 'beverages-syrups', 
+    count: '6 Items', 
+    initial: 'BS', 
+    cardBg: 'bg-[#F4EAFF] dark:bg-purple-950/40', 
+    borderColor: 'border-[#E1C4FF] dark:border-purple-800/40 hover:border-purple-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-purple-600 border-purple-200 dark:border-purple-800', 
+    titleText: 'text-purple-950 dark:text-purple-100', 
+    countText: 'text-purple-700/80 dark:text-purple-300/80' 
+  },
+  { 
+    name: 'Pure Honey', 
+    value: 'others', 
+    count: '4 Items', 
+    initial: 'H', 
+    cardBg: 'bg-[#FFFBE6] dark:bg-yellow-950/40', 
+    borderColor: 'border-[#FEF0A5] dark:border-yellow-800/40 hover:border-yellow-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-yellow-700 border-yellow-200 dark:border-yellow-800', 
+    titleText: 'text-yellow-950 dark:text-yellow-100', 
+    countText: 'text-yellow-700/80 dark:text-yellow-300/80' 
+  },
+  { 
+    name: 'Traditional Sweeteners & Sweets', 
+    value: 'others', 
+    count: '7 Items', 
+    initial: 'TS', 
+    cardBg: 'bg-[#FFEBF2] dark:bg-rose-950/40', 
+    borderColor: 'border-[#FBC6D9] dark:border-rose-800/40 hover:border-rose-400', 
+    badgeBg: 'bg-white dark:bg-gray-800 text-rose-600 border-rose-200 dark:border-rose-800', 
+    titleText: 'text-rose-950 dark:text-rose-100', 
+    countText: 'text-rose-700/80 dark:text-rose-300/80' 
+  },
 ];
 
 export default function Home() {
   const [featured, setFeatured] = useState([]);
+  const [categoryCounts, setCategoryCounts] = useState({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,6 +117,10 @@ export default function Home() {
       .then(r => setFeatured(r.data))
       .catch(() => {})
       .finally(() => setLoading(false));
+
+    api.get('/products/category-counts')
+      .then(r => setCategoryCounts(r.data))
+      .catch(() => {});
   }, []);
 
   return (
@@ -89,22 +187,26 @@ export default function Home() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {categories.map((cat, i) => (
             <Link
-              key={cat.value}
+              key={i}
               to={`/products?category=${cat.value}`}
-              className="group relative bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-3xl p-5 flex flex-col justify-between hover:shadow-2xl hover:-translate-y-2 active:scale-95 transition-all duration-300"
+              className={`group relative border rounded-2xl p-4 flex flex-col justify-between hover:shadow-xl hover:-translate-y-1 active:scale-95 transition-all duration-300 min-h-[135px] ${cat.cardBg} ${cat.borderColor}`}
             >
-              {/* Dynamic Gradient Circle */}
-              <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${cat.gradient} text-white flex items-center justify-center font-bold text-lg mb-4 shadow-md transform group-hover:rotate-6 transition duration-300`}>
-                {cat.name.charAt(0)}
+              {/* Dynamic Badge with White Container inside Colored Box */}
+              <div 
+                className={`w-11 h-11 rounded-xl flex items-center justify-center font-extrabold text-sm mb-3 border shadow-sm transform group-hover:rotate-6 transition duration-300 ${cat.badgeBg}`}
+              >
+                {cat.initial}
               </div>
               <div>
-                <h3 className="font-bold text-sm text-gray-900 dark:text-white leading-tight group-hover:text-[#3F6A35] dark:group-hover:text-emerald-400 transition-colors">
+                <h3 className={`font-bold text-xs leading-tight min-h-[28px] flex items-center ${cat.titleText}`}>
                   {cat.name}
                 </h3>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{cat.count}</p>
+                <p className={`text-[10px] font-semibold mt-1 ${cat.countText}`}>
+                  {categoryCounts[cat.value] !== undefined ? `${categoryCounts[cat.value]} Items` : cat.count}
+                </p>
               </div>
             </Link>
           ))}
@@ -167,7 +269,7 @@ export default function Home() {
             { 
               icon: <FiTruck className="text-[#3F6A35] dark:text-emerald-400" size={32} />, 
               title: 'Express Courier Shipping', 
-              desc: 'Completely free delivery on all order checkouts above ₹500 across India.' 
+              desc: 'Fast, secure courier delivery calculated dynamically by weight (₹90/kg) across India.' 
             },
             { 
               icon: <FiCheckCircle className="text-[#5A582E] dark:text-yellow-400" size={32} />, 

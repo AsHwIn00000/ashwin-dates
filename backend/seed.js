@@ -22,8 +22,13 @@ const products = [
   { name: 'Kewra Essence', description: 'Authentic kewra (pandanus) essence. Adds floral aroma to biryanis.', pricePerKg: 1200, category: 'essence', inStock: true, rating: 4.2, isFeatured: false, images: [] },
 ];
 
+const dns = require('dns');
+try {
+  dns.setServers(['8.8.8.8', '1.1.1.1']);
+} catch (e) {}
+
 async function seed() {
-  await mongoose.connect(process.env.MONGO_URI);
+  await mongoose.connect(process.env.MONGO_URI, { family: 4 });
   console.log('Connected to MongoDB');
 
   // Create admin

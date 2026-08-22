@@ -15,13 +15,22 @@ const productSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['almonds', 'cashews', 'pistachios', 'dates', 'combo', 'spices', 'seeds', 'essence', 'others'],
+    enum: ['almonds', 'cashews', 'pistachios', 'dates', 'combo', 'spices', 'seeds', 'essence', 'others', 'beverages-syrups'],
   },
   inStock: { type: Boolean, default: true },
   images: [{ type: String }],
   rating: { type: Number, default: 0, min: 0, max: 5 },
   numReviews: { type: Number, default: 0 },
   isFeatured: { type: Boolean, default: false },
+  reviews: [
+    {
+      userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+      name: { type: String, required: true },
+      rating: { type: Number, required: true, min: 1, max: 5 },
+      comment: { type: String, required: true },
+      createdAt: { type: Date, default: Date.now },
+    }
+  ],
 }, { timestamps: true });
 
 // Auto-calculate prices before save

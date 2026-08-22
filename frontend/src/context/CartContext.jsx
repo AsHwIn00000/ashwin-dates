@@ -35,11 +35,25 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = () => setCart([]);
 
+  const getWeightInKg = (weightStr) => {
+    if (!weightStr) return 0.5;
+    const match = weightStr.match(/^(\d+(?:\.\d+)?)\s*(g|kg)$/i);
+    if (!match) return 0.5;
+    const val = parseFloat(match[1]);
+    const unit = match[2].toLowerCase();
+    if (unit === 'kg') return val;
+    if (unit === 'g') return val / 1000;
+    return 0.5;
+  };
+
   const total = cart.reduce((sum, i) => sum + (i.price || 0) * i.quantity, 0);
   const count = cart.reduce((sum, i) => sum + i.quantity, 0);
+  const totalWeight = cart.reduce((sum, i) => sum + getWeightInKg(i.selectedWeight || '500g') * i.quantity, 0);
+  const shipping = Math.round(totalWeight * 90);
+  const grandTotal = total + shipping;
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, total, count }}>
+    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, total, count, totalWeight, shipping, grandTotal }}>
       {children}
     </CartContext.Provider>
   );

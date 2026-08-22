@@ -5,13 +5,15 @@ import { useAuth } from '../context/AuthContext';
 import { FiShoppingCart, FiStar } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
-const WEIGHTS = ['100g', '250g', '500g', '1kg'];
+import { WEIGHT_OPTIONS, calculatePriceForWeight } from '../utils/priceCalculator';
+
+const WEIGHTS = WEIGHT_OPTIONS;
 
 export default function ProductCard({ product }) {
   const { addToCart } = useCart();
   const { user } = useAuth();
   const [selectedWeight, setSelectedWeight] = useState('500g');
-  const price = product.prices?.[selectedWeight] || product.pricePerKg || 0;
+  const price = calculatePriceForWeight(product, selectedWeight);
   const isAdmin = user?.role === 'admin';
 
   const handleAdd = (e) => {
@@ -56,10 +58,10 @@ export default function ProductCard({ product }) {
         </div>
 
         {/* Weight selector */}
-        <div className="grid grid-cols-4 gap-1 mb-2">
+        <div className="grid grid-cols-5 gap-0.5 sm:gap-1 mb-2">
           {WEIGHTS.map(w => (
             <button key={w} onClick={() => setSelectedWeight(w)}
-              className={`text-xs py-1 rounded-lg border font-medium transition ${
+              className={`text-[10px] sm:text-xs py-1 px-0.5 rounded-lg border font-medium transition text-center truncate ${
                 selectedWeight === w
                   ? 'bg-gradient-to-r from-[#3d6b35] to-[#6b4226] text-white border-transparent'
                   : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-green-400'

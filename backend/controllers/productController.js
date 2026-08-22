@@ -46,6 +46,43 @@ exports.getFeatured = async (req, res) => {
   }
 };
 
+exports.getCategoryCounts = async (req, res) => {
+  try {
+    const rawCounts = await Product.aggregate([
+      { $group: { _id: "$category", count: { $sum: 1 } } }
+    ]);
+
+    const countMap = {};
+    rawCounts.forEach(item => {
+      if (item._id) countMap[item._id] = item.count;
+    });
+
+    const datesCount = countMap['dates'] || 0;
+    const dryFruitsCount = (countMap['almonds'] || 0) + (countMap['cashews'] || 0) + (countMap['pistachios'] || 0) + (countMap['dry-fruits'] || 0);
+    const nutsCount = (countMap['almonds'] || 0) + (countMap['cashews'] || 0) + (countMap['pistachios'] || 0);
+    const spicesCount = countMap['spices'] || 0;
+    const comboCount = countMap['combo'] || 0;
+    const seedsCount = countMap['seeds'] || 0;
+    const beveragesCount = (countMap['essence'] || 0) + (countMap['beverages-syrups'] || 0);
+    const honeyCount = countMap['others'] || 0;
+    const sweetsCount = countMap['others'] || 0;
+
+    res.json({
+      dates: datesCount,
+      'dry-fruits': dryFruitsCount,
+      almonds: nutsCount,
+      spices: spicesCount,
+      combo: comboCount,
+      seeds: seedsCount,
+      'beverages-syrups': beveragesCount,
+      others: honeyCount,
+      raw: countMap
+    });
+  } catch (err) {
+    res.status(500).json({ message: 'Server error fetching category counts' });
+  }
+};
+
 exports.createProduct = async (req, res) => {
   try {
     const images = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
@@ -94,5 +131,43 @@ exports.deleteProduct = async (req, res) => {
     res.json({ message: 'Product deleted' });
   } catch {
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.createProductReview = async (req, res) => {
+  try {
+    const { rating, comment } = req.body;
+    const product = await Product.findById(req.params.id);
+    if (!product) return res.status(404).json({ message: 'Product not found' });
+
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({ message: 'Please provide a rating between 1 and 5' });
+    }
+    if (!comment || !comment.trim()) {
+      return res.status(400).json({ message: 'Please provide a comment' });
+    }
+
+    const alreadyReviewed = product.reviews?.find(
+      r => r.userId.toString() === req.user._id.toString()
+    );
+    if (alreadyReviewed) {
+      return res.status(400).json({ message: 'Product already reviewed by you' });
+    }
+
+    const review = {
+      userId: req.user._id,
+      name: req.user.name,
+      rating: Number(rating),
+      comment: comment.trim(),
+    };
+
+    product.reviews.push(review);
+    product.numReviews = product.reviews.length;
+    product.rating = product.reviews.reduce((acc, r) => acc + r.rating, 0) / product.reviews.length;
+
+    await product.save();
+    res.status(201).json({ message: 'Review added successfully', product });
+  } catch (err) {
+    res.status(500).json({ message: err.message || 'Server error adding review' });
   }
 };

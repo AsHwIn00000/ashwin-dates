@@ -20,6 +20,8 @@ const orderSchema = new mongoose.Schema({
     state: { type: String, required: true },
     pincode: { type: String, required: true },
   },
+  itemsPrice: { type: Number, default: 0 },
+  shippingPrice: { type: Number, default: 0 },
   totalAmount: { type: Number, required: true },
   paymentMethod: { type: String, enum: ['razorpay', 'cod'], default: 'cod' },
   paymentStatus: { type: String, enum: ['pending', 'paid', 'failed'], default: 'pending' },
@@ -27,9 +29,12 @@ const orderSchema = new mongoose.Schema({
   razorpayPaymentId: { type: String },
   orderStatus: {
     type: String,
-    enum: ['processing', 'confirmed', 'shipped', 'delivered', 'cancelled'],
+    enum: ['processing', 'confirmed', 'shipped', 'delivered', 'cancelled', 'return_requested', 'returned'],
     default: 'processing',
   },
+  orderNumber: { type: String, unique: true, sparse: true },
+  cancelReason: { type: String },
+  returnReason: { type: String },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Order', orderSchema);

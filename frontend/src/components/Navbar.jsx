@@ -39,18 +39,20 @@ export default function Navbar() {
           <button onClick={toggle} className="p-2 rounded-full border border-green-300/40 text-green-100 hover:bg-white/10 transition" aria-label="Toggle theme">
             {dark ? <FiSun size={15} /> : <FiMoon size={15} />}
           </button>
-          <Link to="/cart" className="relative p-2">
-            <FiShoppingCart size={20} className="text-green-100 hover:text-white" />
-            {count > 0 && (
-              <span className="absolute top-0 right-0 bg-yellow-400 text-[#3F6A35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                {count}
-              </span>
-            )}
-          </Link>
+          {user?.role !== 'admin' && (
+            <Link to="/cart" className="relative p-2">
+              <FiShoppingCart size={20} className="text-green-100 hover:text-white" />
+              {count > 0 && (
+                <span className="absolute top-0 right-0 bg-yellow-400 text-[#3F6A35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                  {count}
+                </span>
+              )}
+            </Link>
+          )}
           {user ? (
             <div className="flex items-center gap-3 text-sm">
               <span className="text-green-100 text-xs">Hi, {user.name?.split(' ')[0]}</span>
-              <Link to="/orders" className="text-green-100 hover:text-white transition">Orders</Link>
+              {user.role !== 'admin' && <Link to="/orders" className="text-green-100 hover:text-white transition">Orders</Link>}
               <button onClick={handleLogout} className="flex items-center gap-1 text-red-300 hover:text-red-200 text-xs">
                 <FiLogOut size={13} /> Logout
               </button>
@@ -66,14 +68,16 @@ export default function Navbar() {
           <button onClick={toggle} className="p-1.5 rounded-full border border-green-300/40 text-green-100">
             {dark ? <FiSun size={14} /> : <FiMoon size={14} />}
           </button>
-          <Link to="/cart" className="relative">
-            <FiShoppingCart size={20} className="text-green-100" />
-            {count > 0 && (
-              <span className="absolute -top-1 -right-1 bg-yellow-400 text-[#3F6A35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
-                {count}
-              </span>
-            )}
-          </Link>
+          {user?.role !== 'admin' && (
+            <Link to="/cart" className="relative">
+              <FiShoppingCart size={20} className="text-green-100" />
+              {count > 0 && (
+                <span className="absolute -top-1 -right-1 bg-yellow-400 text-[#3F6A35] text-xs rounded-full w-4 h-4 flex items-center justify-center font-bold">
+                  {count}
+                </span>
+              )}
+            </Link>
+          )}
           <button onClick={() => setOpen(!open)}>
             {open ? <FiX size={22} className="text-white" /> : <FiMenu size={22} className="text-white" />}
           </button>
@@ -84,10 +88,10 @@ export default function Navbar() {
         <div className="md:hidden bg-gradient-to-b from-[#3F6A35] via-[#5A582E] to-[#6B4327] border-t border-white/10 px-6 py-4 flex flex-col gap-4 text-sm text-green-100">
           <Link to="/" onClick={() => setOpen(false)} className="hover:text-white">Home</Link>
           <Link to="/products" onClick={() => setOpen(false)} className="hover:text-white">Products</Link>
-          <Link to="/cart" onClick={() => setOpen(false)} className="hover:text-white">Cart ({count})</Link>
+          {user?.role !== 'admin' && <Link to="/cart" onClick={() => setOpen(false)} className="hover:text-white">Cart ({count})</Link>}
           {user ? (
             <>
-              <Link to="/orders" onClick={() => setOpen(false)} className="hover:text-white">My Orders</Link>
+              {user.role !== 'admin' && <Link to="/orders" onClick={() => setOpen(false)} className="hover:text-white">My Orders</Link>}
               {user.role === 'admin' && (
                 <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-1 text-yellow-300 font-bold">
                   <FiSettings size={13} /> Admin Panel

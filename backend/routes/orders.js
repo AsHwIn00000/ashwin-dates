@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createOrder, getMyOrders, getOrder,
   generateOrderPDF, getAllOrders, updateOrderStatus, cancelPendingOrder,
+  cancelOrder, returnOrder,
 } = require('../controllers/orderController');
 const { protect, adminOnly } = require('../middleware/auth');
 
@@ -13,5 +14,7 @@ router.get('/:id', protect, getOrder);
 router.get('/:id/pdf', protect, generateOrderPDF);
 router.put('/:id/status', protect, adminOnly, updateOrderStatus);
 router.delete('/:id/pending', protect, cancelPendingOrder);
+router.post('/:id/cancel', protect, cancelOrder);
+router.post('/:id/return', protect, returnOrder);
 
 module.exports = router;

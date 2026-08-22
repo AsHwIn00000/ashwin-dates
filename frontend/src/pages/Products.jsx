@@ -9,8 +9,12 @@ const CATEGORIES = [
   { value: 'all', label: 'All' },
   { value: 'dates', label: 'Dates' },
   { value: 'dry-fruits', label: 'Dry Fruits' },
+  { value: 'almonds', label: 'Nuts' },
   { value: 'spices', label: 'Spices' },
-  { value: 'essence', label: 'Flavoured Essence' },
+  { value: 'combo', label: 'Combos' },
+  { value: 'seeds', label: 'Seeds' },
+  { value: 'beverages-syrups', label: 'Beverages & Syrups' },
+  { value: 'others', label: 'Honey & Sweets' },
 ];
 
 function useDebounce(value, delay) {
@@ -41,8 +45,10 @@ export default function Products() {
     try {
       const params = { page, limit: 12 };
       if (category !== 'all') {
-        if (category === 'dry-fruits') {
-          params.category = 'almonds,cashews,pistachios,combo,seeds,others';
+        if (category === 'dry-fruits' || category === 'almonds') {
+          params.category = 'almonds,cashews,pistachios';
+        } else if (category === 'beverages-syrups') {
+          params.category = 'essence,beverages-syrups';
         } else {
           params.category = category;
         }

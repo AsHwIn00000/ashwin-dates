@@ -30,7 +30,7 @@ export default function Footer() {
           <p className="text-sm">📍 438/Main Bazaar, Virudhunagar - 626001</p>
           <p className="text-sm mt-2">📧 preamkumar.t.m1978@gmail.com</p>
           <p className="text-sm mt-2">📞 +91 9442114559</p>
-          <p className="text-sm mt-3 text-green-300">Free shipping on orders above ₹500</p>
+          <p className="text-sm mt-3 text-green-200 font-medium">Express Courier Shipping (₹90/kg)</p>
         </div>
       </div>
       <div className="border-t border-white/10 text-center py-5 text-xs text-green-300">

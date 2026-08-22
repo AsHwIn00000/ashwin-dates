@@ -29,16 +29,13 @@ const downloadPDF = async (orderId) => {
 };
 
 export default function Checkout() {
-  const { cart, total, clearCart } = useCart();
+  const { cart, total, clearCart, shipping, grandTotal, totalWeight } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cod');
   const [form, setForm] = useState({ name: user?.name || '', phone: '', street: '', city: '', state: '', pincode: '' });
   const [errors, setErrors] = useState({});
-
-  const shipping = total >= 500 ? 0 : 50;
-  const grandTotal = total + shipping;
 
   const handleChange = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
@@ -153,7 +150,8 @@ export default function Checkout() {
             </div>
             <div className="border-t dark:border-gray-700 pt-3 space-y-2 text-sm">
               <div className="flex justify-between dark:text-gray-300"><span>Subtotal</span><span>₹{total.toFixed(0)}</span></div>
-              <div className="flex justify-between dark:text-gray-300"><span>Shipping</span><span>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span></div>
+              <div className="flex justify-between dark:text-gray-300"><span>Total Weight</span><span>{totalWeight.toFixed(2)} kg</span></div>
+              <div className="flex justify-between dark:text-gray-300"><span>Shipping (₹90/kg)</span><span>₹{shipping}</span></div>
               <div className="flex justify-between font-bold text-base pt-2 border-t dark:border-gray-700 dark:text-white">
                 <span>Total</span>
                 <span className="text-[#3d6b35] dark:text-green-400">₹{grandTotal.toFixed(0)}</span>

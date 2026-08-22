@@ -1,6 +1,7 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const PDFDocument = require('pdfkit');
+const { sendOrderNotificationToAdmin } = require('../utils/mailer');
 
 // SMS notification helper
 const sendAdminSMS = async (message) => {
@@ -22,11 +23,41 @@ const BRAND_NAME = 'Ashwin Dates & Dry Fruits';
 const SUPPORT_EMAIL = 'preamkumar.t.m1978@gmail.com';
 const SUPPORT_PHONE = '+91 9442114559';
 
+const getWeightInKg = (weightStr) => {
+  if (!weightStr) return 0.5;
+  const match = weightStr.match(/^(\d+(?:\.\d+)?)\s*(g|kg)$/i);
+  if (!match) return 0.5;
+  const val = parseFloat(match[1]);
+  const unit = match[2].toLowerCase();
+  if (unit === 'kg') return val;
+  if (unit === 'g') return val / 1000;
+  return 0.5;
+};
+
+const calculatePriceForWeight = (product, weightStr) => {
+  if (product.prices && product.prices[weightStr] !== undefined && product.prices[weightStr] > 0) {
+    return product.prices[weightStr];
+  }
+  const basePricePerKg = product.pricePerKg || 0;
+  const weightInKg = getWeightInKg(weightStr);
+  return Math.round(basePricePerKg * weightInKg);
+};
+
+const generateOrderNumber = () => {
+  const randomNum = Math.floor(100000 + Math.random() * 900000);
+  return `ORD-${randomNum}`;
+};
+
 exports.createOrder = async (req, res) => {
   try {
+    if (req.user && req.user.role === 'admin') {
+      return res.status(403).json({ message: 'Admins are not allowed to place orders' });
+    }
+
     const { products, shippingAddress, paymentMethod } = req.body;
 
-    let totalAmount = 0;
+    let itemsPrice = 0;
+    let totalWeight = 0;
     const orderProducts = [];
 
     for (const item of products) {
@@ -35,8 +66,9 @@ exports.createOrder = async (req, res) => {
       if (!product.inStock) return res.status(400).json({ message: `${product.name} is out of stock` });
 
       const weight = item.weight || '500g';
-      const price = product.prices?.[weight] || product.pricePerKg;
-      totalAmount += price * item.quantity;
+      const price = calculatePriceForWeight(product, weight);
+      itemsPrice += price * item.quantity;
+      totalWeight += getWeightInKg(weight) * item.quantity;
 
       orderProducts.push({
         productId: product._id,
@@ -48,20 +80,34 @@ exports.createOrder = async (req, res) => {
       });
     }
 
+    const shippingPrice = Math.round(totalWeight * 90);
+    const totalAmount = itemsPrice + shippingPrice;
+    const orderNumber = generateOrderNumber();
+
     const order = await Order.create({
+      orderNumber,
       userId: req.user._id,
       products: orderProducts,
       shippingAddress,
+      itemsPrice,
+      shippingPrice,
       totalAmount,
       paymentMethod,
       paymentStatus: 'pending',
       orderStatus: 'processing',
     });
 
-    // Notify admin via SMS
+    // Notify admin via SMS & Email
     const itemsSummary = orderProducts.map(p => `${p.name} (${p.weight} x${p.quantity})`).join(', ');
+    const displayId = order.orderNumber || (`ORD-${order._id.toString().slice(-6).toUpperCase()}`);
+
     await sendAdminSMS(
-      `🛒 New Order!\nCustomer: ${shippingAddress.name}\nPhone: ${shippingAddress.phone}\nItems: ${itemsSummary}\nTotal: ₹${totalAmount}\nPayment: ${paymentMethod.toUpperCase()}\nOrder ID: ${order._id}`
+      `🛒 New Order!\nCustomer: ${shippingAddress.name}\nPhone: ${shippingAddress.phone}\nItems: ${itemsSummary}\nTotal: ₹${totalAmount}\nPayment: ${paymentMethod.toUpperCase()}\nOrder ID: ${displayId}`
+    );
+
+    // Notify admin via Email
+    sendOrderNotificationToAdmin(order, shippingAddress, orderProducts).catch(err => 
+      console.error('Error in sendOrderNotificationToAdmin:', err.message)
     );
 
     res.status(201).json(order);
@@ -100,7 +146,7 @@ exports.generateOrderPDF = async (req, res) => {
 
     const doc = new PDFDocument({ margin: 50, size: 'A4' });
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=order-${order._id}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=order-${order.orderNumber || order._id}.pdf`);
     doc.pipe(res);
 
     // ── Header band ──────────────────────────────────────────────
@@ -113,7 +159,8 @@ exports.generateOrderPDF = async (req, res) => {
     // ── Order meta ───────────────────────────────────────────────
     doc.fontSize(11).fillColor('#333');
     const metaY = 100;
-    doc.text(`Order ID:`, 50, metaY).fillColor(BRAND_COLOR).text(order._id.toString(), 130, metaY);
+    const displayOrderId = order.orderNumber || (`ORD-${order._id.toString().slice(-6).toUpperCase()}`);
+    doc.text(`Order ID:`, 50, metaY).fillColor(BRAND_COLOR).text(displayOrderId, 130, metaY);
     doc.fillColor('#333').text(`Date:`, 50, metaY + 18)
       .text(new Date(order.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' }), 130, metaY + 18);
     doc.text(`Status:`, 50, metaY + 36).fillColor('#16a34a').text(order.orderStatus.toUpperCase(), 130, metaY + 36);
@@ -163,6 +210,13 @@ exports.generateOrderPDF = async (req, res) => {
     rowY += 6;
     doc.moveTo(50, rowY).lineTo(545, rowY).strokeColor(BRAND_COLOR).lineWidth(0.5).stroke();
     rowY += 8;
+    const subtotal = order.itemsPrice || (order.totalAmount - (order.shippingPrice || 0));
+    const shipping = order.shippingPrice || 0;
+    doc.fontSize(10).fillColor('#333')
+      .text(`Subtotal:  Rs.${subtotal}`, 50, rowY, { align: 'right', width: 495 });
+    rowY += 14;
+    doc.text(`Shipping Fee:  Rs.${shipping}`, 50, rowY, { align: 'right', width: 495 });
+    rowY += 16;
     doc.fontSize(12).fillColor(BRAND_COLOR)
       .text(`Grand Total:  Rs.${order.totalAmount}`, 50, rowY, { align: 'right', width: 495 });
 
@@ -213,5 +267,42 @@ exports.updateOrderStatus = async (req, res) => {
     res.json(order);
   } catch {
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.cancelOrder = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    order.orderStatus = 'cancelled';
+    order.cancelReason = reason || 'Cancelled by customer';
+    await order.save();
+    res.json({ message: 'Order cancelled successfully', order });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.returnOrder = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const order = await Order.findById(req.params.id);
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+    if (order.userId.toString() !== req.user._id.toString() && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (order.orderStatus !== 'delivered') {
+      return res.status(400).json({ message: 'Only delivered orders can be returned' });
+    }
+    order.orderStatus = 'return_requested';
+    order.returnReason = reason || 'Return requested by customer';
+    await order.save();
+    res.json({ message: 'Return requested successfully', order });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

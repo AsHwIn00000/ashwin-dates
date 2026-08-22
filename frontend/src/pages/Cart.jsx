@@ -5,7 +5,7 @@ import { FiTrash2, FiShoppingBag } from 'react-icons/fi';
 import toast from 'react-hot-toast';
 
 export default function Cart() {
-  const { cart, removeFromCart, updateQuantity, total } = useCart();
+  const { cart, removeFromCart, updateQuantity, total, shipping, grandTotal, totalWeight } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -27,8 +27,6 @@ export default function Cart() {
       </div>
     );
   }
-
-  const shipping = total >= 500 ? 0 : 50;
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -68,15 +66,15 @@ export default function Cart() {
           <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Order Summary</h2>
           <div className="space-y-2 text-sm text-gray-600 dark:text-gray-400 mb-4">
             <div className="flex justify-between"><span>Subtotal</span><span>₹{total.toFixed(0)}</span></div>
+            <div className="flex justify-between"><span>Total Weight</span><span>{totalWeight.toFixed(2)} kg</span></div>
             <div className="flex justify-between">
-              <span>Shipping</span>
-              <span className={shipping === 0 ? 'text-green-600 font-medium' : ''}>{shipping === 0 ? 'FREE' : `₹${shipping}`}</span>
+              <span>Shipping (₹90/kg)</span>
+              <span>₹{shipping}</span>
             </div>
-            {total < 500 && <p className="text-xs text-green-600">Add ₹{(500 - total).toFixed(0)} more for free shipping!</p>}
           </div>
           <div className="border-t dark:border-gray-700 pt-3 flex justify-between font-bold text-lg mb-4">
             <span className="dark:text-white">Total</span>
-            <span className="text-[#3d6b35] dark:text-green-400">₹{(total + shipping).toFixed(0)}</span>
+            <span className="text-[#3d6b35] dark:text-green-400">₹{grandTotal.toFixed(0)}</span>
           </div>
           <button onClick={handleCheckout}
             className="w-full bg-gradient-to-r from-[#3d6b35] to-[#6b4226] text-white py-3 rounded-xl font-bold hover:opacity-80 transition">
