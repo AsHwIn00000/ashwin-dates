@@ -2,9 +2,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
-import { FiShoppingCart, FiLogOut, FiMenu, FiX, FiSun, FiMoon, FiSettings, FiPackage, FiBell, FiChevronRight } from 'react-icons/fi';
+import { FiShoppingCart, FiLogOut, FiMenu, FiX, FiSun, FiMoon, FiPackage, FiBell, FiChevronRight, FiShield } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
-import { FiEye, FiEyeOff } from 'react-icons/fi';
 import api from '../api/axios';
 
 export default function Navbar() {
@@ -14,8 +13,6 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
-  const [mode, setMode] = useState('password');
-  const [showPassword, setShowPassword] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [recentOrders, setRecentOrders] = useState([]);
 
@@ -29,30 +26,29 @@ export default function Navbar() {
           .then(res => setRecentOrders(res.data || []))
           .catch(err => console.error('Failed to fetch admin orders:', err));
       };
-
       fetchAdminOrders();
-      const interval = setInterval(fetchAdminOrders, 20000); // Poll every 20s
+      const interval = setInterval(fetchAdminOrders, 20000);
       return () => clearInterval(interval);
     }
   }, [isAdmin, isAuthPage]);
 
   const pendingOrders = recentOrders.filter(o => o.orderStatus === 'processing' || o.orderStatus === 'pending');
-
   const handleLogout = () => { logout(); navigate('/'); setOpen(false); };
 
   return (
     <nav className="bg-gradient-to-r from-[#3F6A35] via-[#5A582E] to-[#6B4327] sticky top-0 z-50 shadow-lg">
       <div className="max-w-7xl mx-auto px-6 py-3 flex items-center justify-between">
-        {/* Logo Branding */}
+
+        {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="Ashwin Dates" className="h-10 w-10 object-contain rounded-full bg-white/10 p-0.5" />
           <div className="leading-tight">
             <span className="text-base font-extrabold text-white">Ashwin</span>
-            <span className="block text-xs font-medium text-green-100 -mt-0.5">Dates & Dry Fruits</span>
+            <span className="block text-xs font-medium text-green-100 -mt-0.5">Dates &amp; Dry Fruits</span>
           </div>
         </Link>
 
-        {/* Center Links (Hidden on Login/Register pages) */}
+        {/* Desktop Nav Links */}
         {!isAuthPage && (
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-green-100">
             <Link to="/" className="hover:text-white transition font-semibold">Home</Link>
@@ -75,7 +71,7 @@ export default function Navbar() {
           </div>
         )}
 
-        {/* Right Side Actions */}
+        {/* Right Side */}
         <div className="hidden md:flex items-center gap-4">
           <button onClick={toggle} className="p-2 rounded-full border border-green-300/40 text-green-100 hover:bg-white/10 transition" aria-label="Toggle theme">
             {dark ? <FiSun size={16} /> : <FiMoon size={16} />}
@@ -84,7 +80,7 @@ export default function Navbar() {
           {/* Admin Notification Bell */}
           {isAdmin && !isAuthPage && (
             <div className="relative">
-              <button 
+              <button
                 onClick={() => setShowNotifs(!showNotifs)}
                 className="relative p-2 rounded-full border border-yellow-400/40 text-yellow-300 hover:bg-white/10 transition"
                 title="Admin Notifications"
@@ -97,9 +93,8 @@ export default function Navbar() {
                 )}
               </button>
 
-              {/* Notification Dropdown */}
               {showNotifs && (
-                <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-3 text-gray-800 dark:text-white z-50 animate-fadeIn">
+                <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-3 text-gray-800 dark:text-white z-50">
                   <div className="px-4 pb-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
                     <span className="font-extrabold text-sm flex items-center gap-1.5 text-[#3F6A35] dark:text-green-400">
                       <FiBell size={14} /> New Order Alerts
@@ -109,13 +104,12 @@ export default function Navbar() {
                     </span>
                   </div>
 
-                  <div className="relative w-full overflow-hidden rounded-2xl mt-2" id="google-signin-btn"></div>
                   <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                     {recentOrders.length === 0 ? (
                       <div className="p-4 text-center text-xs text-gray-400">No orders received yet</div>
                     ) : (
                       recentOrders.slice(0, 4).map(o => (
-                        <Link 
+                        <Link
                           key={o._id}
                           to="/admin/orders"
                           onClick={() => setShowNotifs(false)}
@@ -125,7 +119,7 @@ export default function Navbar() {
                             <span className="text-gray-900 dark:text-white">{o.orderNumber || `ORD-${o._id.slice(-6).toUpperCase()}`}</span>
                             <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-extrabold ${
                               o.orderStatus === 'processing' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' :
-                              o.orderStatus === 'delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                              o.orderStatus === 'delivered'  ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
                               'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
                             }`}>
                               {o.orderStatus}
@@ -140,24 +134,7 @@ export default function Navbar() {
                     )}
                   </div>
 
-                  <label className="block text-[11px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-wider">Password</label>
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      onClick={() => setMode('forgot-send')}
-                      className="text-[11px] text-[#3F6A35] dark:text-emerald-400 hover:underline font-bold"
-                    >
-                      Forgot Password?
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                    </button>
-                  </div>
-                  <div className="p-2 pt-2 border-t border-gray-100 dark:border-gray-700 text-center">
+                  <div className="p-2 border-t border-gray-100 dark:border-gray-700 text-center">
                     <Link
                       to="/admin/orders"
                       onClick={() => setShowNotifs(false)}
@@ -191,7 +168,7 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile menu button */}
+        {/* Mobile Menu Button */}
         <div className="md:hidden flex items-center gap-3">
           <button onClick={toggle} className="p-1.5 rounded-full border border-green-300/40 text-green-100">
             {dark ? <FiSun size={14} /> : <FiMoon size={14} />}

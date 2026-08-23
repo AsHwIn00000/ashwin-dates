@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiKey, FiArrowLeft, FiCheckCircle } from 'react-icons/fi';
+import { FiMail, FiLock, FiKey, FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 
 export default function Login() {
@@ -11,6 +11,7 @@ export default function Login() {
 
   // Mode: 'password' | 'login-verify' (for unverified users logging in) | 'forgot-send' | 'forgot-verify'
   const [mode, setMode] = useState('password');
+  const [showPassword, setShowPassword] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [showGoogleModal, setShowGoogleModal] = useState(false);
   
@@ -222,12 +223,19 @@ export default function Login() {
                     <FiLock size={16} />
                   </div>
                   <input
-                    name="password" type="password" value={form.password} onChange={handleChange}
+                    name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange}
                     placeholder="••••••••"
-                    className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
+                    className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
                       errors.password ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
                     }`}
                   />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(p => !p)}
+                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition"
+                  >
+                    {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                  </button>
                 </div>
                 {errors.password && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.password}</p>}
               </div>
@@ -247,22 +255,8 @@ export default function Login() {
               <div className="flex-grow border-t border-gray-100 dark:border-gray-800"></div>
             </div>
 
-            {/* Google Login Button */}
-            <div className="relative w-full overflow-hidden rounded-2xl mt-2">
-              {/* Visual Custom Button */}
-              <button
-                type="button"
-                className="w-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 py-3.5 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2.5 active:scale-[0.98]"
-              >
-                <FcGoogle size={20} />
-                Continue with Google
-              </button>
-              {/* Invisible Google Button Overlay */}
-              <div 
-                id="google-signin-btn" 
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:scale-150"
-              ></div>
-            </div>
+            {/* Google Login Button – rendered by Google SDK */}
+            <div id="google-signin-btn" className="w-full flex justify-center mt-2"></div>
           </div>
         )}
 
