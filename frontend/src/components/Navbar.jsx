@@ -4,6 +4,7 @@ import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
 import { FiShoppingCart, FiLogOut, FiMenu, FiX, FiSun, FiMoon, FiSettings, FiPackage, FiBell, FiChevronRight } from 'react-icons/fi';
 import { useState, useEffect } from 'react';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import api from '../api/axios';
 
 export default function Navbar() {
@@ -13,6 +14,8 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState('password');
+  const [showPassword, setShowPassword] = useState(false);
   const [showNotifs, setShowNotifs] = useState(false);
   const [recentOrders, setRecentOrders] = useState([]);
 
@@ -66,7 +69,7 @@ export default function Navbar() {
             )}
             {isAdmin && (
               <Link to="/admin" className="flex items-center gap-1 bg-yellow-400 text-[#3F6A35] font-extrabold px-3 py-1 rounded-full text-xs hover:bg-yellow-300 transition shadow">
-                <FiSettings size={12} /> Admin Panel
+                <FiShield size={12} /> Admin Panel
               </Link>
             )}
           </div>
@@ -106,6 +109,7 @@ export default function Navbar() {
                     </span>
                   </div>
 
+                  <div className="relative w-full overflow-hidden rounded-2xl mt-2" id="google-signin-btn"></div>
                   <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
                     {recentOrders.length === 0 ? (
                       <div className="p-4 text-center text-xs text-gray-400">No orders received yet</div>
@@ -136,6 +140,23 @@ export default function Navbar() {
                     )}
                   </div>
 
+                  <label className="block text-[11px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-wider">Password</label>
+                  <div className="flex items-center justify-between">
+                    <button
+                      type="button"
+                      onClick={() => setMode('forgot-send')}
+                      className="text-[11px] text-[#3F6A35] dark:text-emerald-400 hover:underline font-bold"
+                    >
+                      Forgot Password?
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                    </button>
+                  </div>
                   <div className="p-2 pt-2 border-t border-gray-100 dark:border-gray-700 text-center">
                     <Link
                       to="/admin/orders"
@@ -208,7 +229,7 @@ export default function Navbar() {
           )}
           {isAdmin && (
             <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-1 text-yellow-300 font-bold">
-              <FiSettings size={13} /> Admin Panel ({pendingOrders.length} new)
+              <FiShield size={13} /> Admin Panel ({pendingOrders.length} new)
             </Link>
           )}
           {user ? (
