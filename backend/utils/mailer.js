@@ -152,6 +152,9 @@ const sendOrderNotificationToAdmin = async (order, shippingAddress, orderProduct
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user: senderUser, pass },
+      connectionTimeout: 3000,
+      greetingTimeout: 3000,
+      socketTimeout: 5000,
     });
 
     await transporter.sendMail({
@@ -166,4 +169,169 @@ const sendOrderNotificationToAdmin = async (order, shippingAddress, orderProduct
   }
 };
 
-module.exports = { sendOtpEmail, sendOrderNotificationToAdmin };
+const sendOrderConfirmationToCustomer = async (order, customerEmail, shippingAddress, orderProducts) => {
+  const senderUser = process.env.SMTP_USER || 'ashwindatesanddryfruits@gmail.com';
+  const pass = process.env.SMTP_PASS;
+
+  const itemsHtml = orderProducts.map(p => `
+    <tr style="border-bottom: 1px solid #f1f5f9;">
+      <td style="padding: 10px; color: #334155; font-size: 14px;"><strong>${p.name}</strong> (${p.weight || '500g'})</td>
+      <td style="padding: 10px; color: #64748b; font-size: 14px; text-align: center;">${p.quantity}</td>
+      <td style="padding: 10px; color: #334155; font-size: 14px; text-align: right; font-weight: 600;">₹${p.price * p.quantity}</td>
+    </tr>
+  `).join('');
+
+  const displayId = order.orderNumber || (`ORD-${order._id.toString().slice(-6).toUpperCase()}`);
+
+  const htmlContent = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+      <div style="background: linear-gradient(135deg, #3d6b35, #5a582e); padding: 24px; border-radius: 12px; text-align: center; color: #ffffff; margin-bottom: 24px;">
+        <span style="font-size: 36px;">🎉</span>
+        <h2 style="margin: 8px 0 0 0; font-size: 22px; font-weight: 800;">Thank You for Your Order!</h2>
+        <p style="margin: 4px 0 0 0; font-size: 14px; opacity: 0.9;">Order Reference: <strong>${displayId}</strong></p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <p style="color: #334155; font-size: 15px; margin: 0 0 12px 0;">Hello <strong>${shippingAddress.name}</strong>,</p>
+        <p style="color: #64748b; font-size: 14px; margin: 0 0 16px 0;">We have received your order and are preparing it with care. Here is your order summary:</p>
+      </div>
+
+      <div style="margin-bottom: 24px;">
+        <h3 style="color: #3d6b35; font-size: 15px; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; margin-bottom: 12px;">Items Ordered</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+          <thead>
+            <tr style="background: #f8fafc; color: #64748b; font-size: 12px; text-transform: uppercase;">
+              <th style="padding: 8px 10px; text-align: left;">Item</th>
+              <th style="padding: 8px 10px; text-align: center;">Qty</th>
+              <th style="padding: 8px 10px; text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+
+        <div style="background: #f8fafc; padding: 16px; border-radius: 8px; text-align: right;">
+          <p style="margin: 4px 0; color: #64748b; font-size: 13px;">Subtotal: ₹${order.itemsPrice || (order.totalAmount - (order.shippingPrice || 0))}</p>
+          <p style="margin: 4px 0; color: #64748b; font-size: 13px;">Shipping Fee: ₹${order.shippingPrice || 0}</p>
+          <p style="margin: 8px 0 0 0; color: #3d6b35; font-size: 18px; font-weight: 800;">Total Paid/Due: ₹${order.totalAmount}</p>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 24px; background: #fdfdfd; border: 1px solid #f1f5f9; padding: 16px; border-radius: 10px;">
+        <h4 style="margin: 0 0 8px 0; color: #334155; font-size: 14px;">Shipping To:</h4>
+        <p style="margin: 2px 0; color: #64748b; font-size: 13px;">${shippingAddress.street}, ${shippingAddress.city}</p>
+        <p style="margin: 2px 0; color: #64748b; font-size: 13px;">${shippingAddress.state} - ${shippingAddress.pincode}</p>
+        <p style="margin: 2px 0; color: #64748b; font-size: 13px;">Phone: ${shippingAddress.phone}</p>
+      </div>
+
+      <div style="text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0 0 4px 0;">Need help? Contact support at +91 9442114559 or ashwindatesanddryfruits@gmail.com</p>
+        <p style="margin: 0;">&copy; ${new Date().getFullYear()} Ashwin Dates & Dry Fruits</p>
+      </div>
+    </div>
+  `;
+
+  if (!pass) {
+    console.log('\n' + '='.repeat(70));
+    console.log('✉️ [CUSTOMER ORDER RECEIPT] (SIMULATED MODE)');
+    console.log(`TO CUSTOMER: ${customerEmail}`);
+    console.log(`ORDER ID:    ${displayId}`);
+    console.log(`TOTAL:       ₹${order.totalAmount}`);
+    console.log('=' .repeat(70) + '\n');
+    return { simulated: true };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: senderUser, pass },
+      connectionTimeout: 3000,
+      greetingTimeout: 3000,
+      socketTimeout: 5000,
+    });
+
+    await transporter.sendMail({
+      from: `"Ashwin Dates & Dry Fruits" <${senderUser}>`,
+      to: customerEmail,
+      subject: `Order Confirmed! Reference: ${displayId}`,
+      html: htmlContent,
+    });
+    console.log(`✅ Customer order receipt sent to ${customerEmail}`);
+  } catch (err) {
+    console.error('Failed to send customer order email:', err.message);
+  }
+};
+
+const sendOrderStatusUpdateToCustomer = async (order, customerEmail, newStatus) => {
+  if (!customerEmail) return;
+  const senderUser = process.env.SMTP_USER || 'ashwindatesanddryfruits@gmail.com';
+  const pass = process.env.SMTP_PASS;
+
+  const displayId = order.orderNumber || (`ORD-${order._id.toString().slice(-6).toUpperCase()}`);
+  const statusUpper = newStatus.toUpperCase();
+
+  let statusEmoji = '📦';
+  let messageText = `Your order status has been updated to <strong>${statusUpper}</strong>.`;
+
+  if (newStatus === 'shipped') {
+    statusEmoji = '🚚';
+    messageText = `Great news! Your order <strong>${displayId}</strong> has been shipped and is on its way to you.`;
+  } else if (newStatus === 'delivered') {
+    statusEmoji = '✅';
+    messageText = `Your order <strong>${displayId}</strong> has been delivered! We hope you enjoy your premium dates and dry fruits.`;
+  } else if (newStatus === 'cancelled') {
+    statusEmoji = '❌';
+    messageText = `Your order <strong>${displayId}</strong> has been cancelled.`;
+  }
+
+  const htmlContent = `
+    <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 500px; margin: auto; border: 1px solid #e2e8f0; border-radius: 16px; padding: 32px; background: #ffffff; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+      <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 40px;">${statusEmoji}</span>
+        <h2 style="color: #3d6b35; margin-top: 8px; margin-bottom: 4px; font-weight: 800;">Order Status Update</h2>
+        <p style="color: #64748b; font-size: 14px; margin: 0;">Order Reference: <strong>${displayId}</strong></p>
+      </div>
+
+      <div style="border-top: 1px solid #f1f5f9; padding-top: 20px; margin-bottom: 20px; text-align: center;">
+        <p style="color: #334155; font-size: 15px; line-height: 1.6; margin: 0 0 16px 0;">
+          ${messageText}
+        </p>
+        <div style="display: inline-block; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 20px; padding: 8px 24px; color: #166534; font-weight: 700; font-size: 14px;">
+          Status: ${statusUpper}
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #f1f5f9; padding-top: 16px; text-align: center; color: #94a3b8; font-size: 12px;">
+        <p style="margin: 0 0 4px 0;">Ashwin Dates & Dry Fruits | Support: +91 9442114559</p>
+      </div>
+    </div>
+  `;
+
+  if (!pass) {
+    console.log(`🔔 [CUSTOMER STATUS UPDATE] Order ${displayId} -> ${statusUpper} (SIMULATED MODE)`);
+    return { simulated: true };
+  }
+
+  try {
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: senderUser, pass },
+      connectionTimeout: 3000,
+      greetingTimeout: 3000,
+      socketTimeout: 5000,
+    });
+
+    await transporter.sendMail({
+      from: `"Ashwin Dates Store" <${senderUser}>`,
+      to: customerEmail,
+      subject: `Order Update: ${displayId} is now ${statusUpper}`,
+      html: htmlContent,
+    });
+    console.log(`✅ Status update email sent to ${customerEmail}`);
+  } catch (err) {
+    console.error('Failed to send status update email:', err.message);
+  }
+};
+
+module.exports = { sendOtpEmail, sendOrderNotificationToAdmin, sendOrderConfirmationToCustomer, sendOrderStatusUpdateToCustomer };

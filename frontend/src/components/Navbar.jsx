@@ -2,8 +2,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
 import { useTheme } from '../context/ThemeContext';
-import { FiShoppingCart, FiLogOut, FiMenu, FiX, FiSun, FiMoon, FiSettings, FiPackage } from 'react-icons/fi';
-import { useState } from 'react';
+import { FiShoppingCart, FiLogOut, FiMenu, FiX, FiSun, FiMoon, FiSettings, FiPackage, FiBell, FiChevronRight } from 'react-icons/fi';
+import { useState, useEffect } from 'react';
+import api from '../api/axios';
 
 export default function Navbar() {
   const { user, logout } = useAuth();
@@ -12,9 +13,27 @@ export default function Navbar() {
   const navigate = useNavigate();
   const location = useLocation();
   const [open, setOpen] = useState(false);
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [recentOrders, setRecentOrders] = useState([]);
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
   const isAdmin = user?.role === 'admin';
+
+  useEffect(() => {
+    if (isAdmin && !isAuthPage) {
+      const fetchAdminOrders = () => {
+        api.get('/orders/all')
+          .then(res => setRecentOrders(res.data || []))
+          .catch(err => console.error('Failed to fetch admin orders:', err));
+      };
+
+      fetchAdminOrders();
+      const interval = setInterval(fetchAdminOrders, 20000); // Poll every 20s
+      return () => clearInterval(interval);
+    }
+  }, [isAdmin, isAuthPage]);
+
+  const pendingOrders = recentOrders.filter(o => o.orderStatus === 'processing' || o.orderStatus === 'pending');
 
   const handleLogout = () => { logout(); navigate('/'); setOpen(false); };
 
@@ -46,7 +65,7 @@ export default function Navbar() {
               </Link>
             )}
             {isAdmin && (
-              <Link to="/admin" className="flex items-center gap-1 bg-yellow-400 text-[#3F6A35] font-extrabold px-3 py-1 rounded-full text-xs hover:bg-yellow-300 transition">
+              <Link to="/admin" className="flex items-center gap-1 bg-yellow-400 text-[#3F6A35] font-extrabold px-3 py-1 rounded-full text-xs hover:bg-yellow-300 transition shadow">
                 <FiSettings size={12} /> Admin Panel
               </Link>
             )}
@@ -58,6 +77,78 @@ export default function Navbar() {
           <button onClick={toggle} className="p-2 rounded-full border border-green-300/40 text-green-100 hover:bg-white/10 transition" aria-label="Toggle theme">
             {dark ? <FiSun size={16} /> : <FiMoon size={16} />}
           </button>
+
+          {/* Admin Notification Bell */}
+          {isAdmin && !isAuthPage && (
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifs(!showNotifs)}
+                className="relative p-2 rounded-full border border-yellow-400/40 text-yellow-300 hover:bg-white/10 transition"
+                title="Admin Notifications"
+              >
+                <FiBell size={18} />
+                {pendingOrders.length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center font-bold animate-pulse">
+                    {pendingOrders.length}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Dropdown */}
+              {showNotifs && (
+                <div className="absolute right-0 mt-3 w-80 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 py-3 text-gray-800 dark:text-white z-50 animate-fadeIn">
+                  <div className="px-4 pb-2 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+                    <span className="font-extrabold text-sm flex items-center gap-1.5 text-[#3F6A35] dark:text-green-400">
+                      <FiBell size={14} /> New Order Alerts
+                    </span>
+                    <span className="text-xs bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 px-2 py-0.5 rounded-full font-bold">
+                      {pendingOrders.length} Pending
+                    </span>
+                  </div>
+
+                  <div className="max-h-64 overflow-y-auto divide-y divide-gray-100 dark:divide-gray-700">
+                    {recentOrders.length === 0 ? (
+                      <div className="p-4 text-center text-xs text-gray-400">No orders received yet</div>
+                    ) : (
+                      recentOrders.slice(0, 4).map(o => (
+                        <Link 
+                          key={o._id}
+                          to="/admin/orders"
+                          onClick={() => setShowNotifs(false)}
+                          className="p-3 block hover:bg-gray-50 dark:hover:bg-gray-700/50 transition"
+                        >
+                          <div className="flex items-center justify-between text-xs font-bold mb-1">
+                            <span className="text-gray-900 dark:text-white">{o.orderNumber || `ORD-${o._id.slice(-6).toUpperCase()}`}</span>
+                            <span className={`px-2 py-0.5 rounded-full text-[10px] uppercase font-extrabold ${
+                              o.orderStatus === 'processing' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300' :
+                              o.orderStatus === 'delivered' ? 'bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300' :
+                              'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                            }`}>
+                              {o.orderStatus}
+                            </span>
+                          </div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400 flex items-center justify-between">
+                            <span>{o.shippingAddress?.name || 'Customer'}</span>
+                            <span className="font-extrabold text-[#3F6A35] dark:text-green-400">₹{o.totalAmount}</span>
+                          </div>
+                        </Link>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="p-2 pt-2 border-t border-gray-100 dark:border-gray-700 text-center">
+                    <Link
+                      to="/admin/orders"
+                      onClick={() => setShowNotifs(false)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-[#3F6A35] dark:text-green-400 hover:underline"
+                    >
+                      Manage All Orders <FiChevronRight size={12} />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {!isAuthPage && (
             <>
@@ -117,7 +208,7 @@ export default function Navbar() {
           )}
           {isAdmin && (
             <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-1 text-yellow-300 font-bold">
-              <FiSettings size={13} /> Admin Panel
+              <FiSettings size={13} /> Admin Panel ({pendingOrders.length} new)
             </Link>
           )}
           {user ? (

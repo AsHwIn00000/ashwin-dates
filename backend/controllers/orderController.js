@@ -1,7 +1,7 @@
 const Order = require('../models/Order');
 const Product = require('../models/Product');
 const PDFDocument = require('pdfkit');
-const { sendOrderNotificationToAdmin } = require('../utils/mailer');
+const { sendOrderNotificationToAdmin, sendOrderConfirmationToCustomer, sendOrderStatusUpdateToCustomer } = require('../utils/mailer');
 
 // SMS notification helper
 const sendAdminSMS = async (message) => {
@@ -109,6 +109,13 @@ exports.createOrder = async (req, res) => {
     sendOrderNotificationToAdmin(order, shippingAddress, orderProducts).catch(err => 
       console.error('Error in sendOrderNotificationToAdmin:', err.message)
     );
+
+    // Notify customer via Email
+    if (req.user?.email) {
+      sendOrderConfirmationToCustomer(order, req.user.email, shippingAddress, orderProducts).catch(err =>
+        console.error('Error sending customer order confirmation email:', err.message)
+      );
+    }
 
     res.status(201).json(order);
   } catch (err) {
@@ -262,8 +269,15 @@ exports.cancelPendingOrder = async (req, res) => {
 exports.updateOrderStatus = async (req, res) => {
   try {
     const { orderStatus } = req.body;
-    const order = await Order.findByIdAndUpdate(req.params.id, { orderStatus }, { new: true });
+    const order = await Order.findByIdAndUpdate(req.params.id, { orderStatus }, { new: true }).populate('userId', 'email name');
     if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    if (order.userId?.email) {
+      sendOrderStatusUpdateToCustomer(order, order.userId.email, orderStatus).catch(err =>
+        console.error('Error sending customer status update email:', err.message)
+      );
+    }
+
     res.json(order);
   } catch {
     res.status(500).json({ message: 'Server error' });
