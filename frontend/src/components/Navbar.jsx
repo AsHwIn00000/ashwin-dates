@@ -14,6 +14,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isAdmin = user?.role === 'admin';
 
   const handleLogout = () => { logout(); navigate('/'); setOpen(false); };
 
@@ -34,17 +35,17 @@ export default function Navbar() {
           <div className="hidden md:flex items-center gap-6 text-sm font-medium text-green-100">
             <Link to="/" className="hover:text-white transition font-semibold">Home</Link>
             <Link to="/products" className="hover:text-white transition font-semibold">Products</Link>
-            {user?.role !== 'admin' && (
+            {!isAdmin && (
               <Link to="/cart" className="hover:text-white transition font-semibold flex items-center gap-1.5">
                 My Cart {count > 0 && <span className="bg-yellow-400 text-[#3F6A35] text-xs px-1.5 py-0.5 rounded-full font-bold">{count}</span>}
               </Link>
             )}
-            {user && user.role !== 'admin' && (
+            {user && !isAdmin && (
               <Link to="/orders" className="hover:text-white transition font-semibold flex items-center gap-1">
                 <FiPackage size={14} /> My Orders
               </Link>
             )}
-            {user?.role === 'admin' && (
+            {isAdmin && (
               <Link to="/admin" className="flex items-center gap-1 bg-yellow-400 text-[#3F6A35] font-extrabold px-3 py-1 rounded-full text-xs hover:bg-yellow-300 transition">
                 <FiSettings size={12} /> Admin Panel
               </Link>
@@ -85,7 +86,7 @@ export default function Navbar() {
           </button>
           {!isAuthPage && (
             <>
-              {user?.role !== 'admin' && (
+              {!isAdmin && (
                 <Link to="/cart" className="relative p-1">
                   <FiShoppingCart size={20} className="text-green-100" />
                   {count > 0 && (
@@ -108,13 +109,13 @@ export default function Navbar() {
         <div className="md:hidden bg-gradient-to-b from-[#3F6A35] via-[#5A582E] to-[#6B4327] border-t border-white/10 px-6 py-4 flex flex-col gap-4 text-sm text-green-100">
           <Link to="/" onClick={() => setOpen(false)} className="hover:text-white font-semibold">Home</Link>
           <Link to="/products" onClick={() => setOpen(false)} className="hover:text-white font-semibold">Products</Link>
-          {user?.role !== 'admin' && (
+          {!isAdmin && (
             <Link to="/cart" onClick={() => setOpen(false)} className="hover:text-white font-semibold">My Cart ({count})</Link>
           )}
-          {user && user.role !== 'admin' && (
+          {user && !isAdmin && (
             <Link to="/orders" onClick={() => setOpen(false)} className="hover:text-white font-semibold">My Orders</Link>
           )}
-          {user?.role === 'admin' && (
+          {isAdmin && (
             <Link to="/admin" onClick={() => setOpen(false)} className="flex items-center gap-1 text-yellow-300 font-bold">
               <FiSettings size={13} /> Admin Panel
             </Link>
