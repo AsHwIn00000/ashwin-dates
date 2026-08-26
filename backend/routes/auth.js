@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { body } = require('express-validator');
-const { register, login, getMe, updateProfile, sendOtp, resetPasswordOtp, verifyRegisterOtp, googleLogin } = require('../controllers/authController');
+const { register, login, getMe, updateProfile, sendOtp, resetPasswordOtp, verifyRegisterOtp, googleLogin, checkOrCreateUser } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
 
 const passwordRules = body('password')
@@ -22,6 +22,11 @@ router.post('/send-otp', [
   body('email').isEmail().withMessage('Valid email required').normalizeEmail(),
   body('purpose').isIn(['forgot-password', 'register']).withMessage('Invalid purpose'),
 ], sendOtp);
+
+// Email-first login flow: check if new or existing user
+router.post('/check-email', [
+  body('email').isEmail().withMessage('Valid email required').normalizeEmail(),
+], checkOrCreateUser);
 
 router.post('/verify-register-otp', [
   body('email').isEmail().withMessage('Valid email required').normalizeEmail(),

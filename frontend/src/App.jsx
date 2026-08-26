@@ -13,7 +13,6 @@ import ProductDetail from './pages/ProductDetail';
 import Cart from './pages/Cart';
 import Checkout from './pages/Checkout';
 import Login from './pages/Login';
-import Register from './pages/Register';
 import Orders from './pages/Orders';
 import AdminDashboard from './pages/admin/Dashboard';
 import AdminProducts from './pages/admin/AdminProducts';
@@ -39,7 +38,7 @@ function AppRoutes() {
           <Route path="/products/:id" element={<ProtectedRoute><ProductDetail /></ProtectedRoute>} />
           <Route path="/cart" element={<ProtectedRoute noAdmin><Cart /></ProtectedRoute>} />
           <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
+          <Route path="/register" element={<Navigate to="/login" replace />} />
           <Route path="/checkout" element={<ProtectedRoute noAdmin><Checkout /></ProtectedRoute>} />
           <Route path="/orders" element={<ProtectedRoute noAdmin><Orders /></ProtectedRoute>} />
           <Route path="/orders/:id" element={<ProtectedRoute noAdmin><Orders /></ProtectedRoute>} />

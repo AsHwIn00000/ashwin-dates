@@ -30,6 +30,11 @@ export const AuthProvider = ({ children }) => {
     return data;
   };
 
+  const checkEmail = async (email) => {
+    const { data } = await api.post('/auth/check-email', { email });
+    return data;
+  };
+
   const verifyRegisterOtp = async (email, otp) => {
     const { data } = await api.post('/auth/verify-register-otp', { email, otp });
     localStorage.setItem('token', data.token);
@@ -58,7 +63,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, sendOtp, verifyRegisterOtp, googleLogin, resetPasswordWithOtp, loading }}>
+    <AuthContext.Provider value={{ user, login, register, logout, sendOtp, checkEmail, verifyRegisterOtp, googleLogin, resetPasswordWithOtp, loading }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,20 +1,25 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiKey, FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff } from 'react-icons/fi';
+import { FiMail, FiLock, FiKey, FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff, FiArrowRight } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 
+// mode: 'email' → enter email
+//       'otp'   → new user: verify OTP to activate account
+//       'password' → existing user: enter password
+//       'forgot-send' → forgot password email step
+//       'forgot-verify' → forgot password OTP + new password step
+
 export default function Login() {
-  const { login, sendOtp, verifyRegisterOtp, googleLogin, resetPasswordWithOtp } = useAuth();
+  const { login, checkEmail, sendOtp, verifyRegisterOtp, googleLogin, resetPasswordWithOtp } = useAuth();
   const navigate = useNavigate();
 
-  // Mode: 'password' | 'login-verify' (for unverified users logging in) | 'forgot-send' | 'forgot-verify'
-  const [mode, setMode] = useState('password');
+  const [mode, setMode] = useState('email');
   const [showPassword, setShowPassword] = useState(false);
-  const [googleLoading, setGoogleLoading] = useState(false);
-  const [showGoogleModal, setShowGoogleModal] = useState(false);
-  
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState({});
+
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -23,32 +28,62 @@ export default function Login() {
     confirmPassword: '',
   });
 
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({});
-
   const handleChange = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
     setErrors(er => ({ ...er, [e.target.name]: '' }));
   };
 
-  // Submit Password Login
-  const handlePasswordSubmit = async e => {
+  // ── Step 1: Check email ──────────────────────────────────────────────────
+  const handleEmailSubmit = async e => {
     e.preventDefault();
-    if (!form.email) {
-      setErrors({ email: 'Email is required' });
-      return;
+    if (!form.email) { setErrors({ email: 'Email is required' }); return; }
+
+    setLoading(true);
+    try {
+      const res = await checkEmail(form.email);
+      if (res.status === 'EXISTING_USER') {
+        setMode('password');
+      } else {
+        // NEW_USER — OTP sent
+        toast.success(res.message || 'OTP sent to your email!');
+        if (res.otp) setForm(f => ({ ...f, otp: res.otp })); // simulated mode
+        setMode('otp');
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    if (!form.password) {
-      setErrors({ password: 'Password is required' });
-      return;
+  };
+
+  // ── Step 2a: New user OTP verify ─────────────────────────────────────────
+  const handleOtpVerify = async e => {
+    e.preventDefault();
+    if (!form.otp) { setErrors({ otp: 'OTP is required' }); return; }
+
+    setLoading(true);
+    try {
+      const user = await verifyRegisterOtp(form.email, form.otp);
+      toast.success(`Welcome to Ashwin Dates, ${user.name}! 🎉`);
+      navigate(user.role === 'admin' ? '/admin' : '/');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Invalid or expired OTP');
+    } finally {
+      setLoading(false);
     }
+  };
+
+  // ── Step 2b: Existing user password login ───────────────────────────────
+  const handlePasswordLogin = async e => {
+    e.preventDefault();
+    if (!form.password) { setErrors({ password: 'Password is required' }); return; }
 
     setLoading(true);
     try {
       const res = await login(form.email, form.password);
       if (res.status === 'PENDING_VERIFICATION') {
-        toast.error(res.message || 'Account not verified. Verification OTP sent!');
-        setMode('login-verify');
+        toast.error('Account not verified. A new OTP has been sent!');
+        setMode('otp');
       } else {
         toast.success(`Welcome back, ${res.user.name}!`);
         navigate(res.user.role === 'admin' ? '/admin' : '/');
@@ -60,66 +95,38 @@ export default function Login() {
     }
   };
 
-  // Verify registration OTP (for unverified users logging in)
-  const handleVerifyRegisterOtp = async e => {
+  // ── Forgot password: step 1 send OTP ────────────────────────────────────
+  const handleForgotSend = async e => {
     e.preventDefault();
-    if (!form.otp) {
-      setErrors({ otp: 'OTP is required' });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const user = await verifyRegisterOtp(form.email, form.otp);
-      toast.success(`Welcome back, ${user.name}! Your account is verified.`);
-      navigate(user.role === 'admin' ? '/admin' : '/');
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Invalid or expired OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 1: Send Reset Password OTP
-  const handleSendForgotPasswordOtp = async e => {
-    e.preventDefault();
-    if (!form.email) {
-      setErrors({ email: 'Email is required' });
-      return;
-    }
+    if (!form.email) { setErrors({ email: 'Email is required' }); return; }
 
     setLoading(true);
     try {
       const res = await sendOtp(form.email, 'forgot-password');
-      toast.success(res.message || 'Verification OTP sent to your email!');
-      if (res.otp) {
-        setForm(prev => ({ ...prev, otp: res.otp }));
-      }
+      toast.success(res.message || 'Reset OTP sent!');
+      if (res.otp) setForm(f => ({ ...f, otp: res.otp }));
       setMode('forgot-verify');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Error requesting password reset');
+      toast.error(err.response?.data?.message || 'Error sending reset OTP');
     } finally {
       setLoading(false);
     }
   };
 
-  // Step 2: Reset Password
+  // ── Forgot password: step 2 reset ───────────────────────────────────────
   const handleResetPassword = async e => {
     e.preventDefault();
     const errs = {};
     if (!form.otp) errs.otp = 'OTP is required';
-    if (form.newPassword.length < 6) errs.newPassword = 'Password must be at least 6 characters';
+    if (form.newPassword.length < 6) errs.newPassword = 'Min 6 characters';
     if (form.newPassword !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
-    if (Object.keys(errs).length) {
-      setErrors(errs);
-      return;
-    }
+    if (Object.keys(errs).length) { setErrors(errs); return; }
 
     setLoading(true);
     try {
       const res = await resetPasswordWithOtp(form.email, form.otp, form.newPassword);
-      toast.success(res.message || 'Password reset successfully!');
-      setForm(prev => ({ ...prev, password: '', otp: '', newPassword: '', confirmPassword: '' }));
+      toast.success(res.message || 'Password reset! Please sign in.');
+      setForm(f => ({ ...f, password: '', otp: '', newPassword: '', confirmPassword: '' }));
       setMode('password');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to reset password');
@@ -128,15 +135,15 @@ export default function Login() {
     }
   };
 
+  // ── Google OAuth ─────────────────────────────────────────────────────────
   const handleGoogleCredentialResponse = async (response) => {
     setLoading(true);
     try {
       const user = await googleLogin(response.credential);
-      toast.success(`Successfully authenticated with Google as ${user.name}!`);
+      toast.success(`Signed in as ${user.name}!`);
       navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || 'Google Sign-In failed. Please sign in with email & password.');
+      toast.error(err.response?.data?.message || 'Google Sign-In failed.');
     } finally {
       setLoading(false);
     }
@@ -160,36 +167,47 @@ export default function Login() {
       initGoogle();
     } else {
       const interval = setInterval(() => {
-        if (window.google) {
-          initGoogle();
-          clearInterval(interval);
-        }
+        if (window.google) { initGoogle(); clearInterval(interval); }
       }, 100);
       return () => clearInterval(interval);
     }
   }, []);
 
+  // ── Helpers ──────────────────────────────────────────────────────────────
+  const inputCls = (field) =>
+    `w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
+      errors[field] ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
+    }`;
+
+  const primaryBtn = `w-full bg-gradient-to-r from-[#3F6A35] via-[#5A582E] to-[#6B4327] hover:opacity-95 text-white py-3.5 rounded-2xl font-bold shadow-md shadow-[#3F6A35]/15 transition-all active:scale-[0.98] disabled:opacity-60 flex justify-center items-center text-sm tracking-wide gap-2`;
+
   return (
     <div className="min-h-screen bg-gradient-to-tr from-[#3F6A35]/15 via-[#5A582E]/5 to-[#6B4327]/15 flex items-center justify-center px-4 py-12 dark:from-gray-950 dark:via-gray-900 dark:to-black">
-      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-[#3F6A35]/10 dark:border-[#5A582E]/20 rounded-3xl shadow-2xl p-8 w-full max-w-md transition-all duration-500 hover:shadow-[#3F6A35]/10">
-        
-        {/* Header Section */}
+      <div className="bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border border-[#3F6A35]/10 dark:border-[#5A582E]/20 rounded-3xl shadow-2xl p-8 w-full max-w-md transition-all duration-500">
+
+        {/* Header */}
         <div className="text-center mb-8">
           <img src="/logo.png" alt="Ashwin Dates Logo" className="h-16 w-16 object-contain mx-auto mb-4 hover:scale-105 transition-transform duration-300" />
           <h1 className="text-2xl font-black text-[#3F6A35] dark:text-emerald-400 tracking-tight">
-            Welcome Back
+            {mode === 'email' && 'Sign In'}
+            {mode === 'otp' && 'Verify Your Email'}
+            {mode === 'password' && 'Welcome Back'}
+            {mode === 'forgot-send' && 'Reset Password'}
+            {mode === 'forgot-verify' && 'Create New Password'}
           </h1>
           <p className="text-gray-500 dark:text-gray-400 text-xs mt-1 font-medium">
-            Sign in to Ashwin Dates & Dry Fruits
+            {mode === 'email' && 'Enter your email to get started'}
+            {mode === 'otp' && `OTP sent to ${form.email}`}
+            {mode === 'password' && `Signing in as ${form.email}`}
+            {mode === 'forgot-send' && 'We\'ll email you a reset code'}
+            {mode === 'forgot-verify' && 'Enter the OTP and your new password'}
           </p>
         </div>
 
-
-
-        {/* 1. PASSWORD LOGIN FORM */}
-        {mode === 'password' && (
+        {/* ── 1. EMAIL STEP ── */}
+        {mode === 'email' && (
           <div className="space-y-5">
-            <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <form onSubmit={handleEmailSubmit} className="space-y-4">
               <div>
                 <label className="block text-[11px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-wider mb-1.5">Email Address</label>
                 <div className="relative">
@@ -197,86 +215,66 @@ export default function Login() {
                     <FiMail size={16} />
                   </div>
                   <input
+                    id="email-input"
                     name="email" type="email" value={form.email} onChange={handleChange}
-                    placeholder="name@domain.com"
-                    className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
-                      errors.email ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
-                    }`}
+                    placeholder="name@domain.com" autoFocus
+                    className={inputCls('email')}
                   />
                 </div>
                 {errors.email && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.email}</p>}
               </div>
 
-              <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-[11px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-wider">Password</label>
-                  <button
-                    type="button"
-                    onClick={() => { setMode('forgot-send'); setErrors({}); }}
-                    className="text-[11px] text-[#3F6A35] dark:text-emerald-400 hover:underline font-bold"
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
-                    <FiLock size={16} />
-                  </div>
-                  <input
-                    name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange}
-                    placeholder="••••••••"
-                    className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
-                      errors.password ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
-                    }`}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(p => !p)}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition"
-                  >
-                    {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
-                  </button>
-                </div>
-                {errors.password && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.password}</p>}
-              </div>
-
-              <button
-                type="submit" disabled={loading}
-                className="w-full bg-gradient-to-r from-[#3F6A35] via-[#5A582E] to-[#6B4327] hover:opacity-95 text-white py-3.5 rounded-2xl font-bold shadow-md shadow-[#3F6A35]/15 transition-all active:scale-[0.98] disabled:opacity-60 flex justify-center items-center text-sm tracking-wide"
-              >
-                {loading ? 'SIGNING IN...' : 'SIGN IN'}
+              <button type="submit" disabled={loading} className={primaryBtn}>
+                {loading ? 'Checking...' : <><span>Continue</span><FiArrowRight size={16} /></>}
               </button>
             </form>
 
-            {/* Separator line */}
-            <div className="relative flex items-center justify-center my-4">
-              <div className="flex-grow border-t border-gray-100 dark:border-gray-800"></div>
+            {/* Separator */}
+            <div className="relative flex items-center justify-center my-2">
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800" />
               <span className="flex-shrink mx-4 text-[11px] text-gray-400 font-bold uppercase tracking-wider">or</span>
-              <div className="flex-grow border-t border-gray-100 dark:border-gray-800"></div>
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800" />
             </div>
 
-            {/* Google Login Button – rendered by Google SDK */}
-            <div id="google-signin-btn" className="w-full flex justify-center mt-2"></div>
+            {/* Google Button */}
+            <div className="relative w-full overflow-hidden rounded-2xl">
+              <button
+                type="button"
+                className="w-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 py-3.5 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2.5 active:scale-[0.98]"
+              >
+                <FcGoogle size={20} />
+                Continue with Google
+              </button>
+              <div
+                id="google-signin-btn"
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:scale-150"
+              />
+            </div>
+
+            <p className="text-center text-[11px] text-gray-400 dark:text-gray-500 pt-1">
+              New here? Just enter your email — we'll set you up automatically ✨
+            </p>
           </div>
         )}
 
-        {/* 2. UNVERIFIED LOGIN OTP INTERCEPTION VIEW */}
-        {mode === 'login-verify' && (
-          <form onSubmit={handleVerifyRegisterOtp} className="space-y-5">
-            <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed mb-2">
+        {/* ── 2. OTP STEP (new user verification) ── */}
+        {mode === 'otp' && (
+          <form onSubmit={handleOtpVerify} className="space-y-5">
+            <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
               <FiCheckCircle size={22} className="shrink-0 text-emerald-500" />
               <div>
-                Please enter the verification OTP code sent to <strong className="text-emerald-900 dark:text-emerald-200">{form.email}</strong>.
+                We sent a 6-digit verification code to <strong className="text-emerald-900 dark:text-emerald-200">{form.email}</strong>. Enter it below to sign in.
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">6-Digit Verification OTP</label>
+              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">6-Digit OTP</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <FiKey size={16} />
                 </div>
                 <input
+                  id="otp-input"
                   name="otp" type="text" maxLength={6} value={form.otp} onChange={handleChange}
                   placeholder="123456"
                   className={`w-full font-mono text-center tracking-[8px] bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
@@ -290,10 +288,10 @@ export default function Login() {
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setMode('password')}
+                onClick={() => setMode('email')}
                 className="flex-[2] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 py-3 rounded-2xl font-bold text-xs hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98]"
               >
-                Back
+                <FiArrowLeft size={14} className="inline mr-1" /> Back
               </button>
               <button
                 type="submit" disabled={loading}
@@ -305,18 +303,73 @@ export default function Login() {
           </form>
         )}
 
-        {/* 3. FORGOT PASSWORD - REQUEST OTP */}
+        {/* ── 3. PASSWORD STEP (existing user) ── */}
+        {mode === 'password' && (
+          <form onSubmit={handlePasswordLogin} className="space-y-5">
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-[11px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-wider">Password</label>
+                <button
+                  type="button"
+                  onClick={() => { setMode('forgot-send'); setErrors({}); }}
+                  className="text-[11px] text-[#3F6A35] dark:text-emerald-400 hover:underline font-bold"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <FiLock size={16} />
+                </div>
+                <input
+                  id="password-input"
+                  name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange}
+                  placeholder="••••••••" autoFocus
+                  className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
+                    errors.password ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
+                  }`}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                </button>
+              </div>
+              {errors.password && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.password}</p>}
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setMode('email')}
+                className="flex-[2] border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 py-3 rounded-2xl font-bold text-xs hover:bg-gray-50 dark:hover:bg-gray-800 transition-all active:scale-[0.98]"
+              >
+                <FiArrowLeft size={14} className="inline mr-1" /> Back
+              </button>
+              <button
+                type="submit" disabled={loading}
+                className="flex-[3] bg-gradient-to-r from-[#3F6A35] via-[#5A582E] to-[#6B4327] hover:opacity-95 text-white py-3 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-60 flex justify-center items-center text-xs tracking-wider"
+              >
+                {loading ? 'SIGNING IN...' : 'SIGN IN'}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {/* ── 4. FORGOT PASSWORD - SEND OTP ── */}
         {mode === 'forgot-send' && (
-          <form onSubmit={handleSendForgotPasswordOtp} className="space-y-5">
+          <form onSubmit={handleForgotSend} className="space-y-5">
             <div className="flex items-center gap-2 text-[#3F6A35] dark:text-emerald-400 font-bold mb-4">
               <button type="button" onClick={() => setMode('password')} className="hover:opacity-75">
                 <FiArrowLeft size={18} />
               </button>
               <span className="text-base font-black">Reset Password</span>
             </div>
-            
-            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed mb-4">
-              Enter your email address and we'll send you an OTP code to let you securely update your password.
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed -mt-2">
+              Enter your email address and we'll send you an OTP to reset your password.
             </p>
 
             <div>
@@ -328,24 +381,19 @@ export default function Login() {
                 <input
                   name="email" type="email" value={form.email} onChange={handleChange}
                   placeholder="name@domain.com"
-                  className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
-                    errors.email ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
-                  }`}
+                  className={inputCls('email')}
                 />
               </div>
               {errors.email && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.email}</p>}
             </div>
 
-            <button
-              type="submit" disabled={loading}
-              className="w-full bg-gradient-to-r from-[#3F6A35] via-[#5A582E] to-[#6B4327] hover:opacity-95 text-white py-3.5 rounded-2xl font-bold shadow-md transition-all active:scale-[0.98] disabled:opacity-60 flex justify-center items-center text-xs tracking-wider"
-            >
+            <button type="submit" disabled={loading} className={primaryBtn}>
               {loading ? 'SENDING CODE...' : 'SEND RESET CODE'}
             </button>
           </form>
         )}
 
-        {/* 4. FORGOT PASSWORD - VERIFY & RESET */}
+        {/* ── 5. FORGOT PASSWORD - VERIFY & RESET ── */}
         {mode === 'forgot-verify' && (
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="flex items-center gap-2 text-[#3F6A35] dark:text-emerald-400 font-bold mb-2">
@@ -355,10 +403,11 @@ export default function Login() {
               <span className="text-base font-black">Create New Password</span>
             </div>
 
-            <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed mb-2">
-              OTP has been dispatched. Enter the code along with your new password details below.
+            <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
+              OTP dispatched to <strong>{form.email}</strong>. Enter the code and your new password below.
             </div>
 
+            {/* OTP */}
             <div>
               <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">6-Digit OTP</label>
               <div className="relative">
@@ -376,6 +425,7 @@ export default function Login() {
               {errors.otp && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.otp}</p>}
             </div>
 
+            {/* New Password */}
             <div>
               <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">New Password</label>
               <div className="relative">
@@ -384,17 +434,16 @@ export default function Login() {
                 </div>
                 <input
                   name="newPassword" type="password" value={form.newPassword} onChange={handleChange}
-                  placeholder="Min 8 characters"
-                  className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
-                    errors.newPassword ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
-                  }`}
+                  placeholder="Min 6 characters"
+                  className={inputCls('newPassword')}
                 />
               </div>
               {errors.newPassword && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.newPassword}</p>}
             </div>
 
+            {/* Confirm Password */}
             <div>
-              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">Confirm New Password</label>
+              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">Confirm Password</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <FiLock size={16} />
@@ -402,32 +451,17 @@ export default function Login() {
                 <input
                   name="confirmPassword" type="password" value={form.confirmPassword} onChange={handleChange}
                   placeholder="Repeat new password"
-                  className={`w-full bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
-                    errors.confirmPassword ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
-                  }`}
+                  className={inputCls('confirmPassword')}
                 />
               </div>
               {errors.confirmPassword && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.confirmPassword}</p>}
             </div>
 
-            <button
-              type="submit" disabled={loading}
-              className="w-full bg-gradient-to-r from-[#3F6A35] via-[#5A582E] to-[#6B4327] hover:opacity-95 text-white py-3.5 rounded-2xl font-bold shadow-md transition-all active:scale-[0.98] disabled:opacity-60 flex justify-center items-center text-xs tracking-wider"
-            >
+            <button type="submit" disabled={loading} className={primaryBtn}>
               {loading ? 'UPDATING...' : 'RESET PASSWORD'}
             </button>
           </form>
         )}
-
-        {/* Footer Navigation */}
-        <div className="mt-8 pt-6 border-t border-gray-100 dark:border-gray-800 text-center text-xs font-semibold">
-          <p className="text-gray-500 dark:text-gray-400">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-[#3F6A35] dark:text-emerald-400 hover:underline font-bold">
-              Register
-            </Link>
-          </p>
-        </div>
 
       </div>
     </div>

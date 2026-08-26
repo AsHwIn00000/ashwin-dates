@@ -226,6 +226,70 @@ exports.sendOtp = async (req, res) => {
   }
 };
 
+// NEW: Email-first sign-in flow — checks if user exists, creates new user if not, sends OTP
+exports.checkOrCreateUser = async (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
+
+  const { email } = req.body;
+  try {
+    let user = await User.findOne({ email });
+
+    if (user && user.isVerified) {
+      // Existing verified user — ask frontend to show password form
+      return res.json({
+        status: 'EXISTING_USER',
+        message: 'Welcome back! Please enter your password to continue.',
+      });
+    }
+
+    // New user OR unverified user — send OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+
+    if (!user) {
+      // Auto-create new user with temporary name from email prefix
+      const tempName = email.split('@')[0].replace(/[^a-zA-Z0-9 ]/g, ' ').trim() || 'User';
+      const tempPassword = crypto.randomBytes(16).toString('hex') + 'Tmp1!';
+      user = new User({
+        name: tempName,
+        email,
+        password: tempPassword,
+        isVerified: false,
+      });
+    }
+
+    user.otpCode = otp;
+    user.otpExpires = Date.now() + 10 * 60 * 1000; // 10 minutes
+    user.isVerified = false;
+    await user.save();
+
+    let mailResult;
+    try {
+      mailResult = await sendOtpEmail(email, otp, 'register');
+    } catch (mailErr) {
+      console.error('SMTP error during checkOrCreateUser, fallback to simulated mode:', mailErr.message);
+      mailResult = { simulated: true, otp };
+    }
+
+    let message = !user.isVerified
+      ? 'Verification OTP sent to your email. Please verify to sign in.'
+      : 'OTP sent to your email.';
+    if (mailResult && mailResult.simulated) {
+      message = `OTP sent (Simulated Mode OTP: ${otp})`;
+    }
+
+    return res.json({
+      status: 'NEW_USER',
+      email: user.email,
+      otp: mailResult?.simulated ? otp : undefined,
+      message,
+    });
+  } catch (err) {
+    console.error('checkOrCreateUser error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 exports.resetPasswordOtp = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
