@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
@@ -14,6 +14,9 @@ import { FcGoogle } from 'react-icons/fc';
 export default function Login() {
   const { login, checkEmail, sendOtp, verifyRegisterOtp, googleLogin, resetPasswordWithOtp } = useAuth();
   const navigate = useNavigate();
+
+  // Keep a stable ref to the Google callback so the closure is never stale
+  const googleCallbackRef = useRef(null);
 
   const [mode, setMode] = useState('email');
   const [showPassword, setShowPassword] = useState(false);
@@ -136,7 +139,8 @@ export default function Login() {
   };
 
   // ── Google OAuth ─────────────────────────────────────────────────────────
-  const handleGoogleCredentialResponse = async (response) => {
+  // Store callback in ref so the SDK always calls the latest version
+  googleCallbackRef.current = async (response) => {
     setLoading(true);
     try {
       const user = await googleLogin(response.credential);
@@ -149,29 +153,80 @@ export default function Login() {
     }
   };
 
+  // Initialize Google SDK once on mount
   useEffect(() => {
+    const GOOGLE_CLIENT_ID = '245597680903-q9am6t8i1uh0guu6j6i5e37djsocabm6.apps.googleusercontent.com';
+
     const initGoogle = () => {
-      if (window.google && window.google.accounts) {
-        window.google.accounts.id.initialize({
-          client_id: '245597680903-q9am6t8i1uh0guu6j6i5e37djsocabm6.apps.googleusercontent.com',
-          callback: handleGoogleCredentialResponse,
-        });
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-signin-btn'),
-          { theme: 'outline', size: 'large', width: '380', shape: 'pill' }
-        );
-      }
+      if (!window.google?.accounts) return;
+      window.google.accounts.id.initialize({
+        client_id: GOOGLE_CLIENT_ID,
+        // Route through ref so closure is never stale
+        callback: (response) => googleCallbackRef.current(response),
+        cancel_on_tap_outside: false,
+      });
     };
 
-    if (window.google) {
+    if (window.google?.accounts) {
       initGoogle();
     } else {
       const interval = setInterval(() => {
-        if (window.google) { initGoogle(); clearInterval(interval); }
+        if (window.google?.accounts) {
+          initGoogle();
+          clearInterval(interval);
+        }
       }, 100);
       return () => clearInterval(interval);
     }
   }, []);
+
+  // Trigger Google One Tap / sign-in popup when user clicks our custom button
+  const handleGoogleButtonClick = () => {
+    if (!window.google?.accounts) {
+      toast.error('Google Sign-In is still loading, please try again.');
+      return;
+    }
+    window.google.accounts.id.prompt((notification) => {
+      // If One Tap was suppressed (browser policy / user dismissed before),
+      // fall back to the OAuth popup flow
+      if (notification.isNotDisplayed() || notification.isSkippedMoment()) {
+        const clientId = '245597680903-q9am6t8i1uh0guu6j6i5e37djsocabm6.apps.googleusercontent.com';
+        const origin = window.location.origin;
+        const params = new URLSearchParams({
+          client_id: clientId,
+          redirect_uri: `${origin}/login`,
+          response_type: 'token',
+          scope: 'email profile',
+          prompt: 'select_account',
+        });
+        // Use auth code flow via a popup window
+        const tokenClient = window.google.accounts.oauth2.initTokenClient({
+          client_id: clientId,
+          scope: 'email profile',
+          callback: async (tokenResponse) => {
+            if (tokenResponse.error) {
+              toast.error('Google Sign-In was cancelled.');
+              return;
+            }
+            // Fetch user info with the access token
+            try {
+              setLoading(true);
+              const info = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+                headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+              }).then(r => r.json());
+              // We need the id_token — fall back to telling user to try again
+              toast.error('Please try signing in with Google again or use email.');
+            } catch {
+              toast.error('Google Sign-In failed. Please try with email.');
+            } finally {
+              setLoading(false);
+            }
+          },
+        });
+        tokenClient.requestAccessToken({ prompt: 'select_account' });
+      }
+    });
+  };
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const inputCls = (field) =>
@@ -236,20 +291,17 @@ export default function Login() {
               <div className="flex-grow border-t border-gray-100 dark:border-gray-800" />
             </div>
 
-            {/* Google Button */}
-            <div className="relative w-full overflow-hidden rounded-2xl">
-              <button
-                type="button"
-                className="w-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 py-3.5 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2.5 active:scale-[0.98]"
-              >
-                <FcGoogle size={20} />
-                Continue with Google
-              </button>
-              <div
-                id="google-signin-btn"
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10 [&_iframe]:w-full [&_iframe]:h-full [&_iframe]:scale-150"
-              />
-            </div>
+            {/* Google Button — calls prompt() directly, no iframe overlay needed */}
+            <button
+              type="button"
+              id="google-signin-btn"
+              onClick={handleGoogleButtonClick}
+              disabled={loading}
+              className="w-full border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800/50 py-3.5 rounded-2xl font-bold text-sm text-gray-700 dark:text-gray-300 transition-all flex items-center justify-center gap-2.5 active:scale-[0.98] disabled:opacity-60"
+            >
+              <FcGoogle size={20} />
+              Continue with Google
+            </button>
 
             <p className="text-center text-[11px] text-gray-400 dark:text-gray-500 pt-1">
               New here? Just enter your email — we'll set you up automatically ✨
