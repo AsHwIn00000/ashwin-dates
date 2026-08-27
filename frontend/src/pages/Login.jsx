@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { FiMail, FiLock, FiKey, FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff, FiArrowRight } from 'react-icons/fi';
+import { FiMail, FiLock, FiKey, FiArrowLeft, FiCheckCircle, FiEye, FiEyeOff, FiArrowRight, FiUser } from 'react-icons/fi';
 import { FcGoogle } from 'react-icons/fc';
 
 // mode: 'email' → enter email
@@ -24,6 +24,7 @@ export default function Login() {
   const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
+    name: '',
     email: '',
     password: '',
     otp: '',
@@ -58,14 +59,23 @@ export default function Login() {
     }
   };
 
-  // ── Step 2a: OTP verify (new or returning user) ──────────────────────────
+  // ── Step 2a: OTP verify & Register (new user setup) ──────────────────────
   const handleOtpVerify = async e => {
     e.preventDefault();
-    if (!form.otp) { setErrors({ otp: 'OTP is required' }); return; }
+    const errs = {};
+    if (!form.name || !form.name.trim()) errs.name = 'Full Name is required';
+    if (!form.otp || form.otp.length !== 6) errs.otp = '6-Digit OTP is required';
+    if (!form.password || form.password.length < 6) errs.password = 'Password must be at least 6 characters';
+    if (form.password !== form.confirmPassword) errs.confirmPassword = 'Passwords do not match';
+
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
 
     setLoading(true);
     try {
-      const user = await verifyRegisterOtp(form.email, form.otp, form.password);
+      const user = await verifyRegisterOtp(form.email, form.otp, form.password, form.name);
       toast.success(`Welcome to Ashwin Dates, ${user.name}! 🎉`);
       navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (err) {
@@ -321,18 +331,35 @@ export default function Login() {
           </div>
         )}
 
-        {/* ── 2. OTP STEP (user verification) ── */}
+        {/* ── 2. OTP STEP (new user registration & verification) ── */}
         {mode === 'otp' && (
-          <form onSubmit={handleOtpVerify} className="space-y-5">
-            <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
+          <form onSubmit={handleOtpVerify} className="space-y-4">
+            <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-3.5 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
               <FiCheckCircle size={22} className="shrink-0 text-emerald-500" />
               <div>
-                We sent a 6-digit verification code to <strong className="text-emerald-900 dark:text-emerald-200">{form.email}</strong>. Enter it below to sign in.
+                We sent a 6-digit verification code to <strong className="text-emerald-900 dark:text-emerald-200">{form.email}</strong>. Fill in your details below to complete registration.
               </div>
             </div>
 
+            {/* Full Name */}
             <div>
-              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">6-Digit OTP</label>
+              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1">Full Name *</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <FiUser size={16} />
+                </div>
+                <input
+                  name="name" type="text" value={form.name} onChange={handleChange}
+                  placeholder="e.g. Rahul Sharma" autoFocus
+                  className={inputCls('name')}
+                />
+              </div>
+              {errors.name && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.name}</p>}
+            </div>
+
+            {/* 6-Digit OTP */}
+            <div>
+              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1">6-Digit OTP *</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <FiKey size={16} />
@@ -340,8 +367,8 @@ export default function Login() {
                 <input
                   id="otp-input"
                   name="otp" type="text" maxLength={6} value={form.otp} onChange={handleChange}
-                  placeholder="123456" autoFocus
-                  className={`w-full font-mono text-center tracking-[8px] bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
+                  placeholder="123456"
+                  className={`w-full font-mono text-center tracking-[8px] bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
                     errors.otp ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
                   }`}
                 />
@@ -349,17 +376,16 @@ export default function Login() {
               {errors.otp && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.otp}</p>}
             </div>
 
+            {/* Create Password */}
             <div>
-              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">
-                Set Password <span className="text-gray-400 font-normal font-sans lowercase">(optional, for future logins)</span>
-              </label>
+              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1">Create Password *</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
                   <FiLock size={16} />
                 </div>
                 <input
                   name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange}
-                  placeholder="Create a password (optional)"
+                  placeholder="At least 6 characters"
                   className={inputCls('password')}
                 />
                 <button
@@ -370,9 +396,26 @@ export default function Login() {
                   {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
                 </button>
               </div>
+              {errors.password && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.password}</p>}
             </div>
 
-            <div className="flex gap-3">
+            {/* Confirm Password */}
+            <div>
+              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1">Confirm Password *</label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <FiLock size={16} />
+                </div>
+                <input
+                  name="confirmPassword" type={showPassword ? 'text' : 'password'} value={form.confirmPassword} onChange={handleChange}
+                  placeholder="Re-type password"
+                  className={inputCls('confirmPassword')}
+                />
+              </div>
+              {errors.confirmPassword && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.confirmPassword}</p>}
+            </div>
+
+            <div className="flex gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => setMode('email')}
@@ -384,7 +427,7 @@ export default function Login() {
                 type="submit" disabled={loading}
                 className="flex-[3] bg-gradient-to-r from-[#3F6A35] to-[#6B4327] hover:opacity-95 text-white py-3 rounded-2xl font-bold transition-all active:scale-[0.98] disabled:opacity-60 flex justify-center items-center text-xs tracking-wider"
               >
-                {loading ? 'VERIFYING...' : 'VERIFY & SIGN IN'}
+                {loading ? 'VERIFYING...' : 'COMPLETE REGISTRATION'}
               </button>
             </div>
           </form>
