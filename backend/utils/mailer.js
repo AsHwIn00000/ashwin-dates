@@ -47,9 +47,10 @@ const sendOtpEmail = async (email, otp, purpose) => {
     const transporter = nodemailer.createTransport({
       service: 'gmail',
       auth: { user, pass },
-      connectionTimeout: 3000,
-      greetingTimeout: 3000,
-      socketTimeout: 5000,
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 30000,
+      tls: { rejectUnauthorized: false },
     });
 
     const mailOptions = {
