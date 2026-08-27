@@ -43,12 +43,17 @@ const sendOtpEmail = async (email, otp, purpose) => {
     throw new Error('SMTP not configured. Cannot send OTP email.');
   }
 
+  // Strip spaces from Gmail App Password (Render env vars may store them with spaces)
+  const cleanPass = pass.replace(/\s+/g, '');
+
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user, pass },
-      connectionTimeout: 10000,
-      greetingTimeout: 10000,
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false, // STARTTLS
+      auth: { user, pass: cleanPass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
       socketTimeout: 30000,
       tls: { rejectUnauthorized: false },
     });
@@ -137,13 +142,17 @@ const sendOrderNotificationToAdmin = async (order, shippingAddress, orderProduct
     return { simulated: true };
   }
 
+  const cleanPass = pass ? pass.replace(/\s+/g, '') : pass;
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: senderUser, pass },
-      connectionTimeout: 3000,
-      greetingTimeout: 3000,
-      socketTimeout: 5000,
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: senderUser, pass: cleanPass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 30000,
+      tls: { rejectUnauthorized: false },
     });
 
     await transporter.sendMail({
@@ -231,13 +240,17 @@ const sendOrderConfirmationToCustomer = async (order, customerEmail, shippingAdd
     return { simulated: true };
   }
 
+  const cleanPass = pass ? pass.replace(/\s+/g, '') : pass;
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: senderUser, pass },
-      connectionTimeout: 3000,
-      greetingTimeout: 3000,
-      socketTimeout: 5000,
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: senderUser, pass: cleanPass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 30000,
+      tls: { rejectUnauthorized: false },
     });
 
     await transporter.sendMail({
@@ -302,13 +315,17 @@ const sendOrderStatusUpdateToCustomer = async (order, customerEmail, newStatus) 
     return { simulated: true };
   }
 
+  const cleanPass = pass ? pass.replace(/\s+/g, '') : pass;
   try {
     const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: senderUser, pass },
-      connectionTimeout: 3000,
-      greetingTimeout: 3000,
-      socketTimeout: 5000,
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: { user: senderUser, pass: cleanPass },
+      connectionTimeout: 15000,
+      greetingTimeout: 15000,
+      socketTimeout: 30000,
+      tls: { rejectUnauthorized: false },
     });
 
     await transporter.sendMail({
