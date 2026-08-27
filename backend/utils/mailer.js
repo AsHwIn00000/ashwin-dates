@@ -51,6 +51,7 @@ const sendOtpEmail = async (email, otp, purpose) => {
       host: 'smtp.gmail.com',
       port: 587,
       secure: false, // STARTTLS
+      family: 4,     // Force IPv4 — Render free tier blocks outbound IPv6
       auth: { user, pass: cleanPass },
       connectionTimeout: 15000,
       greetingTimeout: 15000,
@@ -148,6 +149,7 @@ const sendOrderNotificationToAdmin = async (order, shippingAddress, orderProduct
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
+      family: 4,
       auth: { user: senderUser, pass: cleanPass },
       connectionTimeout: 15000,
       greetingTimeout: 15000,
@@ -246,6 +248,7 @@ const sendOrderConfirmationToCustomer = async (order, customerEmail, shippingAdd
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
+      family: 4,
       auth: { user: senderUser, pass: cleanPass },
       connectionTimeout: 15000,
       greetingTimeout: 15000,
@@ -321,6 +324,7 @@ const sendOrderStatusUpdateToCustomer = async (order, customerEmail, newStatus) 
       host: 'smtp.gmail.com',
       port: 587,
       secure: false,
+      family: 4,
       auth: { user: senderUser, pass: cleanPass },
       connectionTimeout: 15000,
       greetingTimeout: 15000,

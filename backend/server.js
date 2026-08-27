@@ -16,6 +16,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Trust Render's reverse proxy so express-rate-limit reads the real client IP
+app.set('trust proxy', 1);
+
 // Security headers
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 
