@@ -39,14 +39,8 @@ const sendOtpEmail = async (email, otp, purpose) => {
   `;
 
   if (!pass) {
-    console.log('\n' + '='.repeat(60));
-    console.log('⚡ SIMULATED EMAIL SERVICE (NO SMTP PASSWORD CONFIGURED) ⚡');
-    console.log(`TO:      ${email}`);
-    console.log(`SUBJECT: Ashwin Dates & Dry Fruits - OTP Code`);
-    console.log(`PURPOSE: ${purposeText}`);
-    console.log(`OTP:     [ ${otp} ]`);
-    console.log('='.repeat(60) + '\n');
-    return { simulated: true, otp };
+    console.error('SMTP_PASS not configured. OTP for debugging (server-side only): [', otp, ']');
+    throw new Error('SMTP not configured. Cannot send OTP email.');
   }
 
   try {
@@ -68,14 +62,8 @@ const sendOtpEmail = async (email, otp, purpose) => {
     await transporter.sendMail(mailOptions);
     return { simulated: false };
   } catch (err) {
-    console.error('Nodemailer sendMail failed (fallback to simulated mode):', err.message);
-    console.log('\n' + '='.repeat(60));
-    console.log('⚡ SIMULATED EMAIL FALLBACK (SMTP ERROR) ⚡');
-    console.log(`TO:      ${email}`);
-    console.log(`PURPOSE: ${purposeText}`);
-    console.log(`OTP:     [ ${otp} ]`);
-    console.log('='.repeat(60) + '\n');
-    return { simulated: true, otp };
+    console.error('Nodemailer sendMail failed. OTP for debugging (server-side only): [', otp, ']', err.message);
+    throw err;
   }
 };
 

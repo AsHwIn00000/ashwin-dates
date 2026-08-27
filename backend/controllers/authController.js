@@ -36,24 +36,17 @@ exports.register = async (req, res) => {
     user.isVerified = false; // explicitly false
     await user.save();
 
-    let mailResult;
     try {
-      mailResult = await sendOtpEmail(email, otp, 'register');
+      await sendOtpEmail(email, otp, 'register');
     } catch (mailErr) {
-      console.error('SMTP error during registration, fallback to simulated mode:', mailErr.message);
-      mailResult = { simulated: true, otp };
-    }
-    
-    let message = 'Verification OTP sent successfully to your email';
-    if (mailResult && mailResult.simulated) {
-      message = `Verification OTP sent (Simulated Mode OTP: ${otp})`;
+      console.error('SMTP error during registration. OTP for debugging (server-side only):', otp, mailErr.message);
+      return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
     }
 
     res.status(200).json({
       status: 'PENDING_VERIFICATION',
       email: user.email,
-      otp: mailResult?.simulated ? otp : undefined,
-      message,
+      message: 'Verification OTP sent successfully to your email',
     });
   } catch (err) {
     console.error('Register error:', err);
@@ -206,20 +199,14 @@ exports.sendOtp = async (req, res) => {
     user.otpExpires = Date.now() + 10 * 60 * 1000;
     await user.save();
 
-    let mailResult;
     try {
-      mailResult = await sendOtpEmail(email, otp, purpose);
+      await sendOtpEmail(email, otp, purpose);
     } catch (mailErr) {
-      console.error('SMTP error during sendOtp, fallback to simulated mode:', mailErr.message);
-      mailResult = { simulated: true, otp };
-    }
-    
-    let message = 'OTP sent successfully to your email';
-    if (mailResult && mailResult.simulated) {
-      message = `OTP sent successfully (Simulated Mode OTP: ${otp})`;
+      console.error('SMTP error during sendOtp. OTP for debugging (server-side only):', otp, mailErr.message);
+      return res.status(500).json({ message: 'Failed to send OTP email. Please try again.' });
     }
 
-    res.json({ message, otp: mailResult?.simulated ? otp : undefined });
+    res.json({ message: 'OTP sent successfully to your email' });
   } catch (err) {
     console.error('sendOtp error:', err);
     res.status(500).json({ message: 'Server error sending OTP' });
@@ -263,26 +250,17 @@ exports.checkOrCreateUser = async (req, res) => {
     user.isVerified = false;
     await user.save();
 
-    let mailResult;
     try {
-      mailResult = await sendOtpEmail(email, otp, 'register');
+      await sendOtpEmail(email, otp, 'register');
     } catch (mailErr) {
-      console.error('SMTP error during checkOrCreateUser, fallback to simulated mode:', mailErr.message);
-      mailResult = { simulated: true, otp };
-    }
-
-    let message = !user.isVerified
-      ? 'Verification OTP sent to your email. Please verify to sign in.'
-      : 'OTP sent to your email.';
-    if (mailResult && mailResult.simulated) {
-      message = `OTP sent (Simulated Mode OTP: ${otp})`;
+      console.error('SMTP error during checkOrCreateUser. OTP for debugging (server-side only):', otp, mailErr.message);
+      return res.status(500).json({ message: 'Failed to send verification email. Please try again.' });
     }
 
     return res.json({
       status: 'NEW_USER',
       email: user.email,
-      otp: mailResult?.simulated ? otp : undefined,
-      message,
+      message: 'Verification OTP sent to your email. Please verify to sign in.',
     });
   } catch (err) {
     console.error('checkOrCreateUser error:', err);

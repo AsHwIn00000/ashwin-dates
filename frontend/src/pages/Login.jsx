@@ -49,7 +49,6 @@ export default function Login() {
       } else {
         // NEW_USER — OTP sent
         toast.success(res.message || 'OTP sent to your email!');
-        if (res.otp) setForm(f => ({ ...f, otp: res.otp })); // simulated mode
         setMode('otp');
       }
     } catch (err) {
@@ -107,7 +106,6 @@ export default function Login() {
     try {
       const res = await sendOtp(form.email, 'forgot-password');
       toast.success(res.message || 'Reset OTP sent!');
-      if (res.otp) setForm(f => ({ ...f, otp: res.otp }));
       setMode('forgot-verify');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Error sending reset OTP');
