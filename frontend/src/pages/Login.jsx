@@ -58,14 +58,14 @@ export default function Login() {
     }
   };
 
-  // ── Step 2a: New user OTP verify ─────────────────────────────────────────
+  // ── Step 2a: OTP verify (new or returning user) ──────────────────────────
   const handleOtpVerify = async e => {
     e.preventDefault();
     if (!form.otp) { setErrors({ otp: 'OTP is required' }); return; }
 
     setLoading(true);
     try {
-      const user = await verifyRegisterOtp(form.email, form.otp);
+      const user = await verifyRegisterOtp(form.email, form.otp, form.password);
       toast.success(`Welcome to Ashwin Dates, ${user.name}! 🎉`);
       navigate(user.role === 'admin' ? '/admin' : '/');
     } catch (err) {
@@ -92,6 +92,20 @@ export default function Login() {
       }
     } catch (err) {
       toast.error(err.response?.data?.message || 'Login failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Send Login OTP for existing users who prefer OTP ─────────────────────
+  const handleSendLoginOtp = async () => {
+    setLoading(true);
+    try {
+      await sendOtp(form.email, 'login');
+      toast.success(`OTP sent to ${form.email}!`);
+      setMode('otp');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send OTP');
     } finally {
       setLoading(false);
     }
@@ -307,7 +321,7 @@ export default function Login() {
           </div>
         )}
 
-        {/* ── 2. OTP STEP (new user verification) ── */}
+        {/* ── 2. OTP STEP (user verification) ── */}
         {mode === 'otp' && (
           <form onSubmit={handleOtpVerify} className="space-y-5">
             <div className="flex items-center gap-3 bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 p-4 rounded-2xl text-[11px] text-emerald-700 dark:text-emerald-400 leading-relaxed">
@@ -326,13 +340,36 @@ export default function Login() {
                 <input
                   id="otp-input"
                   name="otp" type="text" maxLength={6} value={form.otp} onChange={handleChange}
-                  placeholder="123456"
+                  placeholder="123456" autoFocus
                   className={`w-full font-mono text-center tracking-[8px] bg-gray-50/50 dark:bg-gray-800/50 border rounded-2xl pl-10 pr-4 py-3 text-base focus:outline-none focus:ring-2 focus:ring-[#3F6A35] focus:bg-white dark:focus:bg-gray-800 transition-all ${
                     errors.otp ? 'border-red-400 focus:ring-red-400' : 'border-gray-200 dark:border-gray-700'
                   }`}
                 />
               </div>
               {errors.otp && <p className="text-red-500 text-[10px] mt-1 font-semibold">{errors.otp}</p>}
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold text-[#6B4327] dark:text-amber-400 uppercase tracking-widest mb-1.5">
+                Set Password <span className="text-gray-400 font-normal font-sans lowercase">(optional, for future logins)</span>
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">
+                  <FiLock size={16} />
+                </div>
+                <input
+                  name="password" type={showPassword ? 'text' : 'password'} value={form.password} onChange={handleChange}
+                  placeholder="Create a password (optional)"
+                  className={inputCls('password')}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(p => !p)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600 transition"
+                >
+                  {showPassword ? <FiEyeOff size={16} /> : <FiEye size={16} />}
+                </button>
+              </div>
             </div>
 
             <div className="flex gap-3">
@@ -405,6 +442,23 @@ export default function Login() {
                 {loading ? 'SIGNING IN...' : 'SIGN IN'}
               </button>
             </div>
+
+            {/* Option to log in via Email OTP instead */}
+            <div className="relative flex items-center justify-center pt-2">
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800" />
+              <span className="flex-shrink mx-3 text-[10px] text-gray-400 font-bold uppercase tracking-wider">or</span>
+              <div className="flex-grow border-t border-gray-100 dark:border-gray-800" />
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSendLoginOtp}
+              disabled={loading}
+              className="w-full border border-[#3F6A35]/30 dark:border-emerald-500/30 text-[#3F6A35] dark:text-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-950/20 py-3 rounded-2xl font-bold text-xs transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60"
+            >
+              <FiMail size={16} />
+              Log in with Email OTP instead
+            </button>
           </form>
         )}
 

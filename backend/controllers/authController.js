@@ -99,7 +99,7 @@ exports.verifyRegisterOtp = async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() });
 
-  const { email, otp } = req.body;
+  const { email, otp, password } = req.body;
   try {
     const user = await User.findOne({ email });
     if (!user) {
@@ -108,6 +108,11 @@ exports.verifyRegisterOtp = async (req, res) => {
 
     if (!user.otpCode || user.otpCode !== otp || !user.otpExpires || user.otpExpires < Date.now()) {
       return res.status(400).json({ message: 'Invalid or expired OTP' });
+    }
+
+    // Set user password if provided (min 6 chars)
+    if (password && password.trim().length >= 6) {
+      user.password = password.trim();
     }
 
     // Verify user
